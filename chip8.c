@@ -1,7 +1,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<stdint.h>
-#include<SDL2/SDL.h>
+#include<stdbool.h>
+#include<SDL/SDL.h>
 
 #define MEMSIZE 4096
  
@@ -14,12 +15,13 @@ int main (int argc,char ** argv)
     }
 	int quit=0;
 	
-	if (SDL_Init(SDL_INIT_VIDEO) != 0){
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
 
     fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
 	return 1;
      }
 	SDL_Event event;
+	//SDL_CreateWindow * window = 
 
 
 
@@ -61,10 +63,10 @@ int main (int argc,char ** argv)
 
 	unsigned short stack[16];
 	unsigned short sp;
-	char[2048];
+	//char[2048];
 	unsigned char keyboard[16];	
 	// CHIP-8 Usa un keypad basado en hexadecimal, desde 0x0 hasta 0xF, usaremos una variable para guardar el estado del keyboard
-	
+	bool drawflag;
 	//Inicializar todo
 
 void initChip8(){	
@@ -206,7 +208,34 @@ void loadRom(){
 	      	case 0xC000:
 	      	v[(opcode & 0x0F00)>>8] = (rand() % 0x100) & (opcode & 0x00FF);
 	      	break;
-	      	case 0xD000:
+	      	case 0xD000:{
+	      	unsigned short x = v[(opcode & 0x0F00) >> 8];
+			unsigned short y = v[(opcode & 0x00F0) >> 4];
+			unsigned short height = opcode & 0x000F;
+			
+			v[0xF] = 0;
+			
+			for(int _y = 0; _y < height; _y++) {
+				int line = memory[I + _y];
+				for(int _x = 0; _x < 8; _x++) {
+					int pixel = line & (0x80 >> _x);
+					if(pixel != 0) {
+						int totalX = x + _x;
+						int totalY = y + _y;
+						int index = totalY * 64 + totalX;
+						
+						if(gfx[index] == 1)
+							v[0xF] = 1;
+						
+						gfx[index] ^= 1;
+					}
+				}
+			}
+			PC += 2;
+			drawflag = true;
+			break;
+		}
+	      	
 	      	/* TO DO:
 	      	Dxyn - DRW Vx, Vy, nibble
 			 Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
