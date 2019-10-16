@@ -2,7 +2,8 @@
 #include<stdlib.h>
 #include<stdint.h>
 #include<stdbool.h>
-#include<SDL/SDL.h>
+#include<SDL2/SDL.h>
+
 
 #define MEMSIZE 4096
  
@@ -14,16 +15,28 @@ int main (int argc,char ** argv)
         return 0;
     }
 	int quit=0;
+
 	
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
 
     fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
 	return 1;
      }
-	SDL_Event event;
-	//SDL_CreateWindow * window = 
+    SDL_Event event;
+   
+	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
+	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,0);
+	SDL_Surface * screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 64, 64, 32, 0,0,0,0);
+	SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
 
 
+
+	
+	
+        
+    
+      
+    
 
 	unsigned char chip8_fontset[80] =
 	{
@@ -65,10 +78,11 @@ int main (int argc,char ** argv)
 	unsigned short sp;
 	//char[2048];
 	unsigned char keyboard[16];	
-	// CHIP-8 Usa un keypad basado en hexadecimal, desde 0x0 hasta 0xF, usaremos una variable para guardar el estado del keyboard
+	// CHIP-8 Usa un keypad basado en hexadecimal, desde 0x0 hasta 0xF, usaremos una variable para guardar el estado
 	bool drawflag;
-	//Inicializar todo
 
+	
+//Initialize everything
 void initChip8(){	
 	delay_timer= 0;
 	sound_timer= 0;
@@ -79,6 +93,8 @@ void initChip8(){
 	memset(stack,0,16);
 	memset(memory,0,4096);
 	memset(v,0,16);
+	for(int i = 0; i < 80; ++i){
+    memory[i] = chip8_fontset[i];}	
 }
 
 void loadRom(){
@@ -98,7 +114,6 @@ void loadRom(){
 	{
 		printf("%x ",memory[i]);
 	}*/
-
 
 	
 	void execute(){
@@ -209,33 +224,32 @@ void loadRom(){
 	      	v[(opcode & 0x0F00)>>8] = (rand() % 0x100) & (opcode & 0x00FF);
 	      	break;
 	      	case 0xD000:{
-	      	unsigned short x = v[(opcode & 0x0F00) >> 8];
-			unsigned short y = v[(opcode & 0x00F0) >> 4];
-			unsigned short height = opcode & 0x000F;
+	         unsigned short x = v[(opcode & 0x0F00) >> 8];
+              unsigned short y = v[(opcode & 0x00F0) >> 4];
+              unsigned short height = opcode & 0x000F;
+              unsigned short pixel;
+ 
+              v[0xF] = 0;
+              for (int yline = 0; yline < height; yline++) {
+                  pixel = memory[I + yline];
+                  for(int xline = 0; xline < 8; xline++) {
+                     if((pixel & (0x80 >> xline)) != 0) {
+                        if(gfx[(x + xline + ((y + yline) * 64))] == 1){
+                            v[0xF] = 1;                                   
+                        }
+                      gfx[x + xline + ((y + yline) * 64)] ^= 1;
+                    }
+                  }
+                }
+              drawflag = true;
+              
+              PC += 2;
 			
-			v[0xF] = 0;
 			
-			for(int _y = 0; _y < height; _y++) {
-				int line = memory[I + _y];
-				for(int _x = 0; _x < 8; _x++) {
-					int pixel = line & (0x80 >> _x);
-					if(pixel != 0) {
-						int totalX = x + _x;
-						int totalY = y + _y;
-						int index = totalY * 64 + totalX;
-						
-						if(gfx[index] == 1)
-							v[0xF] = 1;
-						
-						gfx[index] ^= 1;
-					}
-				}
-			}
-			PC += 2;
-			drawflag = true;
-			break;
+			
 		}
-	      	
+	      	break;
+
 	      	/* TO DO:
 	      	Dxyn - DRW Vx, Vy, nibble
 			 Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -273,7 +287,16 @@ void loadRom(){
 initChip8();
 loadRom();	
 while(!quit){
-	execute();
+	
+	SDL_Delay(5);
+	SDL_PollEvent(&event);
+	switch(event.type)
+		{
+			case SDL_QUIT:
+				quit = 1;
+				break;
+			}
+			execute();
 
 }
 
