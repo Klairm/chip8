@@ -26,17 +26,13 @@ int main (int argc,char ** argv)
    
 	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
 	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,0);
-	SDL_Surface * screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 64, 64, 32, 0,0,0,0);
-	SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
-
-
-
-	
-	
-        
+	//SDL_Surface * screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 64, 64, 32, 0,0,0,0);
+	//SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
+	 SDL_Texture *screen;
+    screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 64);
     
-      
     
+
 
 	unsigned char chip8_fontset[80] =
 	{
@@ -114,7 +110,20 @@ void loadRom(){
 	{
 		printf("%x ",memory[i]);
 	}*/
-
+void draw(){
+	void *pixels;
+    int pitch;
+	if(drawflag){
+	SDL_LockTexture(screen, NULL, &pixels, &pitch);
+    // 4 for 32-bits, 2 for 16-bots colordepth etc...
+    memcpy(pixels,gfx, (64*64)*2);
+    SDL_UnlockTexture(screen);
+    
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, screen, NULL, NULL);
+}
+}
 	
 	void execute(){
 	
@@ -223,12 +232,13 @@ void loadRom(){
 	      	case 0xC000:
 	      	v[(opcode & 0x0F00)>>8] = (rand() % 0x100) & (opcode & 0x00FF);
 	      	break;
+
 	      	case 0xD000:{
 	         unsigned short x = v[(opcode & 0x0F00) >> 8];
-              unsigned short y = v[(opcode & 0x00F0) >> 4];
-              unsigned short height = opcode & 0x000F;
-              unsigned short pixel;
- 
+             unsigned short y = v[(opcode & 0x00F0) >> 4];
+             unsigned short height = opcode & 0x000F;
+             unsigned short pixel;
+
               v[0xF] = 0;
               for (int yline = 0; yline < height; yline++) {
                   pixel = memory[I + yline];
@@ -239,28 +249,18 @@ void loadRom(){
                         }
                       gfx[x + xline + ((y + yline) * 64)] ^= 1;
                     }
+                              
                   }
+              
+
                 }
               drawflag = true;
-              
+              draw();
               PC += 2;
 			
 			
 			
 		}
-	      	break;
-
-	      	/* TO DO:
-	      	Dxyn - DRW Vx, Vy, nibble
-			 Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
-			The interpreter reads n bytes from memory, starting at the address stored in I. 
-			These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
-			Sprites are XORed onto the existing screen. 
-			If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
-			If the sprite is positioned so part of it is outside the coordinates of the display, 
-			it wraps around to the opposite side of the screen.
-			*/
-
 	      	break;
 	      	case 0xE000:
 	      		switch(opcode & 0x00FF){
@@ -272,17 +272,12 @@ void loadRom(){
 					
 					break;						
 	      		}
-	      	
-
-
-
-
+	  
 	      	break;
 	      	default:
       		printf("Opcode error -> %x \n",opcode);
       		break;
-     		}
-	
+     	}
 	}
 initChip8();
 loadRom();	
@@ -296,13 +291,7 @@ while(!quit){
 				quit = 1;
 				break;
 			}
-			execute();
-
+	execute();
+	}
+return 0;
 }
-
-
-
-
-}
-
-
