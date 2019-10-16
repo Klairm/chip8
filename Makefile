@@ -1,7 +1,7 @@
-OBJS = chip8.c
+OBJS = src/chip8.c
 CC = gcc
 C_FLAGS = -w
-L_FLAGS = -lSDL
+L_FLAGS = -lSDL2
 OBJ_NAME = chip8
 
 all: $(OBJS)
