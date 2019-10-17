@@ -28,7 +28,7 @@ int main (int argc,char ** argv)
 	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,0);
 	//SDL_Surface * screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 64, 64, 32, 0,0,0,0);
 	//SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
-	 SDL_Texture *screen;
+	SDL_Texture *screen;
     screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 64);
     
     
@@ -122,6 +122,7 @@ void draw(){
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, screen, NULL, NULL);
+    SDL_RenderPresent(renderer);
 }
 }
 	
@@ -253,9 +254,9 @@ void draw(){
                   }
               
 
-                }
+              }
               drawflag = true;
-              draw();
+
               PC += 2;
 			
 			
@@ -292,6 +293,8 @@ while(!quit){
 				break;
 			}
 	execute();
-	}
+	draw();
+	
+}
 return 0;
 }
