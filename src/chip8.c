@@ -293,7 +293,7 @@ void draw()
 	      			break;
 
 	      		}
-	  		case 0xF00:
+	  		case 0xF000:
 	  			switch(opcode & 0x0FF){
 	  				case 0x0007:
 	  				v[(opcode & 0x0F00) >>8] = delay_timer;
@@ -374,7 +374,42 @@ void draw()
 	  				case 0x0018:
 	  				sound_timer = v[(opcode & 0xF00) >>8];
 	  				break;
+	  				case 0x001E:
+	  				I = I + v[(opcode & 0x0F00)>>8];
+	  				break;
+	  				
+	  				case 0x0029:
+	  				 I = v[(opcode & 0x0F00) >> 8] * 0x5;
+	  				break;
+	  				case 0x0033:{
+	  					uint8_t X = v[(opcode & 0x0F00)>>8];
+	  					memory[I+2] = X % 10;
+	  					X /= 10;
+	  					memory[I+2] = X % 10;
+	  					X /=10;
+	  					memory[I] = X % 10;
+
+	  				}
+	  				break;
+	  				case 0x0055:
+	  				{
+					uint8_t X = (opcode & 0x0F00) >> 8;
+
+					for (uint8_t i = 0; i <= X; ++i){
+					memory[I+ i] = v[i];	
+					}
+					}
+					break;
+					case 0x0065:
+					{
+					uint8_t X = (opcode & 0x0F00) >> 8;
+
+					for (uint8_t i = 0; i <= X; ++i){
+					v[i] = memory[I+ i];	
+					}
+					}break;
 	  			}
+
 	      	
 	      	default:
       		printf("Opcode error -> %x \n",opcode);
