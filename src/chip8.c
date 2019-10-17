@@ -25,15 +25,17 @@ int main (int argc,char ** argv)
     SDL_Event event;
    
 	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
-	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,0);
+	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+	SDL_RenderSetLogicalSize(renderer, 64, 32);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+	
 	//SDL_Surface * screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 64, 64, 32, 0,0,0,0);
 	//SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
 	SDL_Texture *screen;
-    screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 64);
+    screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 32);
     
-    
-
-
 	unsigned char chip8_fontset[80] =
 	{
 		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -62,7 +64,7 @@ int main (int argc,char ** argv)
 
 	unsigned short I; /* Tenemos el registro de indice ""I"" y un registro de programa (PC) que pueden tener un valor desde 0x000 hasta 0xFFF*/
 	unsigned short PC;
-	unsigned char gfx[64 * 32];/*los graficos de CHIP 8 son en blanco ynegro, y tiene 2048 pixeles, se puede usar una variable para alterar
+	unsigned char gfx[64 * 32];/*los graficos de CHIP 8 she value of Vxon en blanco ynegro, y tiene 2048 pixeles, se puede usar una variable para alterar
 					  el estado de los graficos entre 1 y 0 facilmente */
 
 
@@ -74,7 +76,7 @@ int main (int argc,char ** argv)
 	unsigned short sp;
 	//char[2048];
 	unsigned char keyboard[16];	
-	// CHIP-8 Usa un keypad basado en hexadecimal, desde 0x0 hasta 0xF, usaremos una variable para guardar el estado
+	// CHIP-8 Usa un keyboard basado en hexadecimal, desde 0x0 hasta 0xF, usaremos una variable para guardar el estado
 	bool drawflag;
 
 	
@@ -110,20 +112,37 @@ void loadRom(){
 	{
 		printf("%x ",memory[i]);
 	}*/
-void draw(){
+void draw()
+{
 	void *pixels;
     int pitch;
-	if(drawflag){
-	SDL_LockTexture(screen, NULL, &pixels, &pitch);
-    // 4 for 32-bits, 2 for 16-bots colordepth etc...
-    memcpy(pixels,gfx, (64*64)*2);
-    SDL_UnlockTexture(screen);
+	SDL_Rect r;
+	int x, y;
+    r.x = 0;
+    r.y = 0;
+    r.w = 1;
+    r.h = 1;
     
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, screen, NULL, NULL);
-    SDL_RenderPresent(renderer);
-}
+	if (drawflag)
+	{
+		SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
+		SDL_RenderClear(renderer);
+		SDL_SetRenderDrawColor( renderer, 0, 255, 0, 255 );
+		for(x=0;x<64;x++)
+		{
+			for(y=0;y<32;y++)
+			{
+				if (gfx[(x) + ((y) * 64)] == 1)
+				{
+					r.x = x;
+					r.y = y;
+					SDL_RenderFillRect( renderer, &r );
+				}
+			}
+		}
+		SDL_RenderPresent(renderer);
+	}
+	drawflag = false;
 }
 	
 	void execute(){
@@ -256,25 +275,107 @@ void draw(){
 
               }
               drawflag = true;
-
-              PC += 2;
-			
-			
-			
-		}
+              PC += 2;}
 	      	break;
+	      	
 	      	case 0xE000:
 	      		switch(opcode & 0x00FF){
-	      			case 0x009E:/* 
-	      	Ex9E - SKP Vx
-			Skip next instruction if key with the value of Vx is pressed.
-
-			Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.*/
-					
+	      			
+	      			case 0x009E:
+	      			if(keyboard[v[(opcode & 0x0F00)>>8]]){
+						PC += 2;
+					}
 					break;						
+	      			case 0x00A1:
+	      			if(!keyboard[v[(opcode & 0x0F00)>>8]]){
+	      				PC+=2;
+	      			}
+	      			break;
+
 	      		}
-	  
-	      	break;
+	  		case 0xF00:
+	  			switch(opcode & 0x0FF){
+	  				case 0x0007:
+	  				v[(opcode & 0x0F00) >>8] = delay_timer;
+	  				break;
+	  				case 0x000A:{
+	  					uint8_t X = (opcode & 0x0F00) >> 8;
+	  					if(keyboard[0]){
+	  						v[X] = 0;
+	  					}
+	  					else if(keyboard[1]){
+	  						v[X] = 1;
+	  					}
+	  					else if(keyboard[2]){
+	  						v[X] = 2;
+	  					}
+	  					else if (keyboard[3])
+						{
+							v[X] = 3;
+						}
+						else if (keyboard[4])
+						{
+							v[X] = 4;
+						}
+						else if (keyboard[5])
+						{
+							v[X] = 5;
+						}
+						else if (keyboard[6])
+						{
+							v[X] = 6;
+						}
+						else if (keyboard[7])
+						{
+							v[X] = 7;
+						}
+						else if (keyboard[8])
+						{
+							v[X] = 8;
+						}
+						else if (keyboard[9])
+						{
+							v[X] = 9;
+						}
+						else if (keyboard[10])
+						{
+							v[X] = 10;
+						}
+						else if (keyboard[11])
+						{
+							v[X] = 11;
+						}
+						else if (keyboard[12])
+						{
+							v[X] = 12;
+						}
+						else if (keyboard[13])
+						{
+							v[X] = 13;
+						}
+						else if (keyboard[14])
+						{
+							v[X] = 14;
+						}
+						else if (keyboard[15])
+						{
+							v[X] = 15;
+						}
+						else
+						{
+							PC -= 2;
+						}
+						break;
+	  				}
+
+	  				case 0x0015:
+	  				delay_timer = v[(opcode & 0xF00) >> 8];
+	  				break;
+	  				case 0x0018:
+	  				sound_timer = v[(opcode & 0xF00) >>8];
+	  				break;
+	  			}
+	      	
 	      	default:
       		printf("Opcode error -> %x \n",opcode);
       		break;
@@ -292,8 +393,10 @@ while(!quit){
 				quit = 1;
 				break;
 			}
-	execute();
+	
 	draw();
+	execute();
+
 	
 }
 return 0;
