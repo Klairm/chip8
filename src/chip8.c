@@ -25,15 +25,14 @@ int main (int argc,char ** argv)
     SDL_Event event;
    
 	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
-	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,0);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
+	//SDL_RenderPresent(renderer);
 	
-	//SDL_Surface * screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 64, 64, 32, 0,0,0,0);
-	//SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
-	SDL_Texture *screen;
+	
+	SDL_Texture * screen;
     screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 32);
     
 	unsigned char chip8_fontset[80] =
@@ -57,15 +56,13 @@ int main (int argc,char ** argv)
 	};
 	
 
-	unsigned short opcode; // asignamos una variable para los opcode (chip 8 tiene 35 opcodes)
-	unsigned char  memory[(MEMSIZE)];// asignamos una variable para memoria, el sistema de chip 8 usaba 4K asi que asignamos 4096
-	unsigned char v[16];/*Los registros de CPU, el de chip 8 tenia 15 de 8bits, 8 bits son 1 Byte asi que son 15 bytes pero usaremos 16,
-			      los registros eran llamados desde V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,VA,VB,VC,VD y VE, y elultimo VF se usa como flag*/
+	unsigned short opcode; 
+	unsigned char  memory[(MEMSIZE)];
+	unsigned char v[16];
 
-	unsigned short I; /* Tenemos el registro de indice ""I"" y un registro de programa (PC) que pueden tener un valor desde 0x000 hasta 0xFFF*/
+	unsigned short I; 
 	unsigned short PC;
-	unsigned char gfx[64 * 32];/*los graficos de CHIP 8 she value of Vxon en blanco ynegro, y tiene 2048 pixeles, se puede usar una variable para alterar
-					  el estado de los graficos entre 1 y 0 facilmente */
+	unsigned char gfx[64 * 32];
 
 
 	// Interruptores y registros de hardware
@@ -74,9 +71,9 @@ int main (int argc,char ** argv)
 
 	unsigned short stack[16];
 	unsigned short sp;
-	//char[2048];
+
 	unsigned char keyboard[16];	
-	// CHIP-8 Usa un keyboard basado en hexadecimal, desde 0x0 hasta 0xF, usaremos una variable para guardar el estado
+	
 	bool drawflag;
 
 	
@@ -108,10 +105,7 @@ void loadRom(){
 	
 	fread(memory+0x200,sizeof(uint16_t),size,fp);
 }
-	/*for( int i  = 0; i<size;i++)
-	{
-		printf("%x ",memory[i]);
-	}*/
+	
 void draw()
 {
 	void *pixels;
@@ -139,10 +133,14 @@ void draw()
 					SDL_RenderFillRect( renderer, &r );
 				}
 			}
-		}
 		SDL_RenderPresent(renderer);
-	}
+		}
+		
+		
 	drawflag = false;
+	}
+	
+	
 }
 	
 	void execute(){
@@ -162,38 +160,41 @@ void draw()
 	          	memset(gfx, 0, 2048);
 	          	break;
 	     	case 0x00EE:
-	     		PC =  stack[sp--];
+	     		--sp;
+	     		PC = stack[sp];
 	     		break;
-			case 0x1000:
-				PC = opcode & 0x0FFF;
+			case 0x1000:{
+				uint16_t nnn = opcode & 0x0FFF;
+				PC = nnn;
+			}
 			break;
 			case 0x2000:
-	      		stack[sp++] = PC;
+	      		stack[++sp] = PC;
 	      		PC = opcode & 0x0FFF;
 	      	break;
 	      	case 0x3000: 
 				if (v[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF)) PC += 2;
 	      	break;
 	      	case 0x4000:
-	      		if (v[opcode & 0x0F00 >> 8] != (opcode & 0x00FF)) PC+=2;
+	      		if (v[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF)) PC+=2;
 	      	break;
 	      	case 0x5000:
-	      		if (v[opcode & 0x0F00 >> 8] == v[(opcode & 0x00F0)]) PC+=2;
+	      		if (v[(opcode & 0x0F00) >> 8] == v[(opcode & 0x00F0)]) PC+=2;
 	      	break;
 	      	case 0x6000:
-	      		v[opcode & 0x0F00 >> 8] = opcode & 0x00FF;
+	      		v[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
 	      	break;
 	      	case 0x7000:
-	      		v[opcode & 0x0F00 >> 8] = opcode & 0x0F00 + opcode & 0x00FF;
+	      		v[(opcode & 0x0F00) >> 8] = ((opcode & 0x0F00)>>8) + (opcode & 0x00FF);
 	      	break;
 	      	case 0x8000:
 	      		switch(opcode & 0x000F){
 	      			case 0x0000:
-	      			v[opcode & 0x0F00 >>8 ] = v[(opcode & 0x00F0) >> 4];
+	      			v[(opcode & 0x0F00) >>8 ] = v[(opcode & 0x00F0) >> 4];
 	      			break;
 
 	      			case 0x0001:
-	      			v[opcode & 0x0F00 >>8 ] |= v[(opcode & 0x00F0) >> 4];
+	      			v[(opcode & 0x0F00) >>8 ] |= v[(opcode & 0x00F0) >> 4];
 	      			break;
 
 	      			case 0x0002:
@@ -206,24 +207,24 @@ void draw()
 
 	      			case 0x0004:{
 	      			int i;
-	      			i = (int)(v[opcode & 0x0F00 >> 8]) + (int)(v[(opcode & 0x00F0) >> 4]);
+	      			i = (int)(v[(opcode & 0x0F00) >> 8]) + (int)(v[(opcode & 0x00F0) >> 4]);
 	      			if (i > 255)
 	      				v[0xF] = 1;
 	      			else
 	      				v[0xF] = 0;
-	      			v[opcode & 0x0F00 >> 8] = i;}
+	      			v[(opcode & 0x0F00) >> 8] = i;}
 	      			break;
 	      			
 	      			case 0x0005:
-					if (v[(opcode & 0x0F00 >> 8 ) > (opcode & 0x00F0 >> 4 )]) v[0xF] = 1;
+					if (v[((opcode & 0x0F00) >> 8)  > (opcode & 0x00F0) >> 4 ]) v[0xF] = 1;
 					else v[0xF] = 0;
-					v[(opcode & 0x0F00 >> 8)] = (opcode & 0x0F00 >>8 ) - (opcode & 0x00F0 >> 4);
+					v[(opcode & 0x0F00) >> 8] = (opcode & 0x0F00) >>8  - (opcode & 0x00F0) >> 4;
 					break; 
 					
 					case 0x0006:
-					if(v[(opcode & 0x0F00 >> 8)] & 1 == 1) v[(opcode & 0xF)] = 1;
+					if(v[(opcode & 0x0F00) >> 8] & 1 == 1) v[(opcode & 0xF)] = 1;
 					else v[opcode & 0xF] = 0;
-					v[(opcode & 0x0F00) >> 8] = ((opcode & 0x0F00) >> 8) / 2;
+					v[(opcode & 0x0F00) >> 8] = (opcode & 0x0F00) >> 8 / 2;
 					
 					case 0x0007:
 					if(v[(opcode & 0x00F0) >> 4] > v[(opcode & 0x0F00) >> 8]) v[0xF] = 1;
@@ -272,9 +273,9 @@ void draw()
                               
                   }
               
-
               }
               drawflag = true;
+
               PC += 2;}
 	      	break;
 	      	
@@ -377,7 +378,7 @@ void draw()
 	  				case 0x001E:
 	  				I = I + v[(opcode & 0x0F00)>>8];
 	  				break;
-	  				
+
 	  				case 0x0029:
 	  				 I = v[(opcode & 0x0F00) >> 8] * 0x5;
 	  				break;
@@ -420,7 +421,7 @@ initChip8();
 loadRom();	
 while(!quit){
 	
-	SDL_Delay(5);
+	//SDL_Delay(5);
 	SDL_PollEvent(&event);
 	switch(event.type)
 		{
