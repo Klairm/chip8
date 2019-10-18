@@ -25,16 +25,16 @@ int main (int argc,char ** argv)
     SDL_Event event;
    
 	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
-	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,0);
+	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
+	//SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	//SDL_RenderClear(renderer);
 	//SDL_RenderPresent(renderer);
 	
 	
 	SDL_Texture * screen;
-    screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 32);
-    
+    //screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 32);
+    screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
 	unsigned char chip8_fontset[80] =
 	{
 		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -133,10 +133,10 @@ void draw()
 					SDL_RenderFillRect( renderer, &r );
 				}
 			}
-		SDL_RenderPresent(renderer);
+		
 		}
 		
-		
+	SDL_RenderPresent(renderer);	
 	drawflag = false;
 	}
 	
@@ -155,7 +155,7 @@ void draw()
 		printf("opcode: %x \n", opcode);
 		
 		
-		switch (opcode & 0xF000){
+		switch (opcode & 0xF000){			
 			case 0x00E0:
 	          	memset(gfx, 0, 2048);
 	          	break;
@@ -166,8 +166,9 @@ void draw()
 			case 0x1000:{
 				uint16_t nnn = opcode & 0x0FFF;
 				PC = nnn;
-			}
 			break;
+			}
+			
 			case 0x2000:
 	      		stack[++sp] = PC;
 	      		PC = opcode & 0x0FFF;
@@ -212,8 +213,11 @@ void draw()
 	      				v[0xF] = 1;
 	      			else
 	      				v[0xF] = 0;
-	      			v[(opcode & 0x0F00) >> 8] = i;}
-	      			break;
+	      			v[(opcode & 0x0F00) >> 8] = i;
+
+						break;
+	      		}
+	      		
 	      			
 	      			case 0x0005:
 					if (v[((opcode & 0x0F00) >> 8)  > (opcode & 0x00F0) >> 4 ]) v[0xF] = 1;
@@ -276,8 +280,10 @@ void draw()
               }
               drawflag = true;
 
-              PC += 2;}
-	      	break;
+              PC += 2;
+              break;
+          }
+	      	
 	      	
 	      	case 0xE000:
 	      		switch(opcode & 0x00FF){
@@ -295,7 +301,7 @@ void draw()
 
 	      		}
 	  		case 0xF000:
-	  			switch(opcode & 0x0FF){
+	  			switch(opcode & 0x00FF){
 	  				case 0x0007:
 	  				v[(opcode & 0x0F00) >>8] = delay_timer;
 	  				break;
@@ -375,10 +381,12 @@ void draw()
 	  				case 0x0018:
 	  				sound_timer = v[(opcode & 0xF00) >>8];
 	  				break;
-	  				case 0x001E:
+	  				case 0x001E:{
 	  				I = I + v[(opcode & 0x0F00)>>8];
-	  				break;
+          	  			break;
 
+	  				
+	  			}
 	  				case 0x0029:
 	  				 I = v[(opcode & 0x0F00) >> 8] * 0x5;
 	  				break;
@@ -389,9 +397,9 @@ void draw()
 	  					memory[I+2] = X % 10;
 	  					X /=10;
 	  					memory[I] = X % 10;
-
+	  					break;
 	  				}
-	  				break;
+	  				
 	  				case 0x0055:
 	  				{
 					uint8_t X = (opcode & 0x0F00) >> 8;
@@ -399,8 +407,9 @@ void draw()
 					for (uint8_t i = 0; i <= X; ++i){
 					memory[I+ i] = v[i];	
 					}
+										break;
+
 					}
-					break;
 					case 0x0065:
 					{
 					uint8_t X = (opcode & 0x0F00) >> 8;
@@ -408,12 +417,14 @@ void draw()
 					for (uint8_t i = 0; i <= X; ++i){
 					v[i] = memory[I+ i];	
 					}
-					}break;
-	  			}
+					break;
+
+					}	  			}
 
 	      	
 	      	default:
       		printf("Opcode error -> %x \n",opcode);
+      		//PC += 2;
       		break;
      	}
 	}
@@ -428,11 +439,189 @@ while(!quit){
 			case SDL_QUIT:
 				quit = 1;
 				break;
-			}
-	
-	draw();
-	execute();
+			
+			case SDL_KEYDOWN:
+				{
+					switch (event.key.keysym.sym)
+					{
+						case SDLK_ESCAPE:
+						{
+							quit = true;
+						} break;
 
+						case SDLK_x:
+						{
+							keyboard[0] = 1;
+						} break;
+
+						case SDLK_1:
+						{
+							keyboard[1] = 1;
+						} break;
+
+						case SDLK_2:
+						{
+							keyboard[2] = 1;
+						} break;
+
+						case SDLK_3:
+						{
+							keyboard[3] = 1;
+						} break;
+
+						case SDLK_q:
+						{
+							keyboard[4] = 1;
+						} break;
+
+						case SDLK_w:
+						{
+							keyboard[5] = 1;
+						} break;
+
+						case SDLK_e:
+						{
+							keyboard[6] = 1;
+						} break;
+
+						case SDLK_a:
+						{
+							keyboard[7] = 1;
+						} break;
+
+						case SDLK_s:
+						{
+							keyboard[8] = 1;
+						} break;
+
+						case SDLK_d:
+						{
+							keyboard[9] = 1;
+						} break;
+
+						case SDLK_z:
+						{
+							keyboard[0xA] = 1;
+						} break;
+
+						case SDLK_c:
+						{
+							keyboard[0xB] = 1;
+						} break;
+
+						case SDLK_4:
+						{
+							keyboard[0xC] = 1;
+						} break;
+
+						case SDLK_r:
+						{
+							keyboard[0xD] = 1;
+						} break;
+
+						case SDLK_f:
+						{
+							keyboard[0xE] = 1;
+						} break;
+
+						case SDLK_v:
+						{
+							keyboard[0xF] = 1;
+						} break;
+					}
+				} break;
+
+				case SDL_KEYUP:
+				{
+					switch (event.key.keysym.sym)
+					{
+						case SDLK_x:
+						{
+							keyboard[0] = 0;
+						} break;
+
+						case SDLK_1:
+						{
+							keyboard[1] = 0;
+						} break;
+
+						case SDLK_2:
+						{
+							keyboard[2] = 0;
+						} break;
+
+						case SDLK_3:
+						{
+							keyboard[3] = 0;
+						} break;
+
+						case SDLK_q:
+						{
+							keyboard[4] = 0;
+						} break;
+
+						case SDLK_w:
+						{
+							keyboard[5] = 0;
+						} break;
+
+						case SDLK_e:
+						{
+							keyboard[6] = 0;
+						} break;
+
+						case SDLK_a:
+						{
+							keyboard[7] = 0;
+						} break;
+
+						case SDLK_s:
+						{
+							keyboard[8] = 0;
+						} break;
+
+						case SDLK_d:
+						{
+							keyboard[9] = 0;
+						} break;
+
+						case SDLK_z:
+						{
+							keyboard[0xA] = 0;
+						} break;
+
+						case SDLK_c:
+						{
+							keyboard[0xB] = 0;
+						} break;
+
+						case SDLK_4:
+						{
+							keyboard[0xC] = 0;
+						} break;
+
+						case SDLK_r:
+						{
+							keyboard[0xD] = 0;
+						} break;
+
+						case SDLK_f:
+						{
+							keyboard[0xE] = 0;
+						} break;
+
+						case SDLK_v:
+						{
+							keyboard[0xF] = 0;
+						} break;
+					}
+				} break;
+			}
+
+	
+	
+	execute();
+draw();
 	
 }
 return 0;
