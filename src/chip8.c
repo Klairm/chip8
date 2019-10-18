@@ -307,6 +307,7 @@ int main (int argc,char ** argv)
 					v[(opcode & 0x0F00 )>> 8] = v[(opcode & 0x0F00)>>8] * 2;
 					break; 				
 				}
+				break;
 				case 0x9000:
 				if(v[(opcode & 0x0F00)>>8] != v[(opcode & 0x00F0)>>4]) PC += 2;
 				break;
@@ -359,6 +360,7 @@ int main (int argc,char ** argv)
 					break;
 
 				}
+				break;
 				case 0xF000:
 				printf("lol");
 				switch(opcode & 0x00FF){
@@ -406,7 +408,8 @@ int main (int argc,char ** argv)
 					}
 					break;
 
-				}	
+				}
+				break;	
 
 
 				default:
