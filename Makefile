@@ -1,6 +1,6 @@
 OBJS = src/chip8.c
 CC = gcc
-C_FLAGS = -w
+C_FLAGS = -w -pedantic
 L_FLAGS = -lSDL2
 OBJ_NAME = chip8
 
