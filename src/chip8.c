@@ -213,7 +213,8 @@ int main (int argc,char ** argv)
 
 		void execute(){
 
-			opcode = memory[PC] << 8 | memory[PC + 1];
+			opcode = memory[PC] << 8 ;
+			opcode |= memory[PC + 1];
 			PC +=2;
 			//if(PC == (MEMSIZE)){
 			//	PC = 0;
@@ -224,16 +225,19 @@ int main (int argc,char ** argv)
 
 
 			switch (opcode & 0xF000){			
-				case 0x00E0:
+				case 0x0000:
+				switch(opcode & 0x00FF){
+				case 0x000E:
 				memset(gfx, 0, 2048);
 				break;
 				case 0x00EE:
 				--sp;
 				PC = stack[sp];
 				break;
+				}
 				case 0x1000:;
-				uint16_t nnn = opcode & 0x0FFF;
-				PC = nnn;
+				 
+				PC = (opcode & 0x0FFF);
 				break;
 				
 
@@ -317,7 +321,7 @@ int main (int argc,char ** argv)
 				break;
 
 				case 0xB000:
-				PC = opcode & 0x0FFF + v[0x0];
+				PC = (opcode & 0x0FFF) + v[0x0];
 				break;
 
 				case 0xC000:
@@ -362,7 +366,6 @@ int main (int argc,char ** argv)
 				}
 				break;
 				case 0xF000:
-				printf("lol");
 				switch(opcode & 0x00FF){
 					case 0x0007:
 					v[(opcode & 0x0F00) >>8] = delay_timer;
@@ -414,7 +417,7 @@ int main (int argc,char ** argv)
 
 				default:
 				printf("Opcode error -> %x \n",opcode);
-      		//PC += 2;
+      			PC += 2;
 				
 			}}	
 			
@@ -422,7 +425,7 @@ int main (int argc,char ** argv)
 			loadRom();	
 			while(!quit){
 
-	//SDL_Delay(5);
+	SDL_Delay(5);
 				SDL_PollEvent(&event);
 				switch(event.type)
 				{
@@ -436,7 +439,7 @@ int main (int argc,char ** argv)
 					{
 						case SDLK_ESCAPE:
 						{
-							quit = true;
+							quit = 1;
 						} break;
 
 						case SDLK_x:
