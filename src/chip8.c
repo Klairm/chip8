@@ -189,7 +189,7 @@ int main (int argc,char ** argv)
 			{
 				SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
 				SDL_RenderClear(renderer);
-				SDL_SetRenderDrawColor( renderer, 0, 255, 0, 255 );
+				SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
 				for(x=0;x<64;x++)
 				{
 					for(y=0;y<32;y++)
@@ -215,11 +215,16 @@ int main (int argc,char ** argv)
 
 			opcode = memory[PC] << 8 | memory[PC + 1];
 			PC +=2;
+			uint8_t X = (opcode & 0xF00) >> 8;
+			uint8_t Y = (opcode & 0x00F0) >> 4;
+			uint16_t nnn = opcode & 0x0FFF;
+			uint8_t kk = opcode & 0x00FF;
+			uint8_t n = opcode & 0x000F;
 
 
 			printf("opcode: %x \n", opcode);
 			printf("program counter: %x \n",PC);
-			
+
 
 			
 
@@ -229,7 +234,7 @@ int main (int argc,char ** argv)
 			switch (opcode & 0xF000){
 				
 				case 0x0000:
-				switch(opcode & 0x00FF){
+				switch(kk){
 				
 				case 0x000E:
 				memset(gfx, 0, 2048);
@@ -239,104 +244,109 @@ int main (int argc,char ** argv)
 				--sp;
 				PC = stack[sp];
 				break;
+				default: printf("Opcode error 0xxx -> %x\n",opcode );
 				}
 				case 0x1000:;
 				 
-				PC = (opcode & 0x0FFF);
+				PC = (nnn);
 				break;
 				
 
 				case 0x2000:
-				stack[++sp] = PC;
-				PC = opcode & 0x0FFF;
+				stack[sp] = PC;
+				++sp;
+				PC = nnn;
 				break;
+
 				case 0x3000: 
-				if (v[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF)) PC += 2;
+				if (v[X] == kk){ PC += 2;}
 				break;
+
 				case 0x4000:
-				if (v[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF)) PC+=2;
+				if (v[X] != kk) PC+=2;
 				break;
+
 				case 0x5000:
-				if (v[(opcode & 0x0F00) >> 8] == v[(opcode & 0x00F0)]) PC+=2;
+				if (v[X] == v[Y]) PC+=2;
 				break;
 				case 0x6000:
-				v[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
+				v[X] = kk;
 				break;
 				case 0x7000:
-				v[(opcode & 0x0F00) >> 8] = ((opcode & 0x0F00)>>8) + (opcode & 0x00FF);
+				v[X] += kk;
 				break;
 				case 0x8000:
-				switch(opcode & 0x000F){
+				switch(n){
 					case 0x0000:
-					v[(opcode & 0x0F00) >>8 ] = v[(opcode & 0x00F0) >> 4];
+					v[X ] = v[Y];
 					break;
 
 					case 0x0001:
-					v[(opcode & 0x0F00) >>8 ] |= v[(opcode & 0x00F0) >> 4];
+					v[X ] |= v[Y];
 					break;
 
 					case 0x0002:
-					v[(opcode & 0x0F00) >>8 ] &= v[(opcode & 0x00F0) >> 4];
+					v[X ] &= v[Y];
 					break;
 
 					case 0x0003:
-					v[(opcode & 0x0F00) >>8 ] ^= v[(opcode & 0x00F0) >> 4];
+					v[X ] ^= v[Y];
 					break;
 
 					case 0x0004:;
 					int i;
-					i = (int)(v[(opcode & 0x0F00) >> 8]) + (int)(v[(opcode & 0x00F0) >> 4]);
+					i = (int)(v[X]) + (int)(v[Y]);
 					if (i > 255)
 						v[0xF] = 1;
 					else
 						v[0xF] = 0;
-					v[(opcode & 0x0F00) >> 8] = i;
+					v[X] = i;
 					break;
 
 					case 0x0005:
-					if (v[((opcode & 0x0F00) >> 8)  > (opcode & 0x00F0) >> 4 ]) v[0xF] = 1;
+					if (v[(X)  > Y ]) v[0xF] = 1;
 					else v[0xF] = 0;
-					v[(opcode & 0x0F00) >> 8] = (opcode & 0x0F00) >>8  - (opcode & 0x00F0) >> 4;
+					v[X] -= Y;
 					break; 
 					
 					case 0x0006:
-					if(v[(opcode & 0x0F00) >> 8] & 1 == 1) v[(opcode & 0xF)] = 1;
+					if(v[X] & 1 == 1) v[(opcode & 0xF)] = 1;
 					else v[opcode & 0xF] = 0;
-					v[(opcode & 0x0F00) >> 8] = (opcode & 0x0F00) >> 8 / 2;
+					v[X] = X / 2;
 					
 					case 0x0007:
-					if(v[(opcode & 0x00F0) >> 4] > v[(opcode & 0x0F00) >> 8]) v[0xF] = 1;
+					if(v[Y] > v[X]) v[0xF] = 1;
 					else v[0xF] = 0;
-					v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x0F00) >> 8] - v[(opcode & 0x00F0)>> 4 ];
+					v[X] = v[X] - v[(opcode & 0x00F0)>> 4 ];
 					break;
 
 					case 0x000E:
-					if(v[(opcode & 0x0F00)>>8 ] >>7 == 1) v[0x0F] = 1;
+					if(v[X ] >>7 == 1) v[0x0F] = 1;
 					else v[0x0F] = 0;
-					v[(opcode & 0x0F00 )>> 8] = v[(opcode & 0x0F00)>>8] * 2;
+					v[(opcode & 0x0F00 )>> 8] = v[X] * 2;
 					break; 				
 				}
 				break;
 				case 0x9000:
-				if(v[(opcode & 0x0F00)>>8] != v[(opcode & 0x00F0)>>4]) PC += 2;
+				if(v[X] != v[Y]) PC += 2;
 				break;
 
 				case 0xA000:
-				I = opcode & 0xFFF;
+				I = nnn;
 				break;
 
 				case 0xB000:
-				PC = (opcode & 0x0FFF) + v[0x0];
+				PC = (nnn) + v[0x0];
 				break;
 
 				case 0xC000:
-				v[(opcode & 0x0F00)>>8] = (rand() % 0x100) & (opcode & 0x00FF);
+				v[X] = (rand() % 0x100) & (kk);
 				break;
 
 				case 0xD000:;
-				unsigned short x = v[(opcode & 0x0F00) >> 8];
-				unsigned short y = v[(opcode & 0x00F0) >> 4];
-				unsigned short height = opcode & 0x000F;
+				unsigned short x = v[X];
+				unsigned short y = v[Y];
+				unsigned short height = n;
 				uint8_t pixel;
 
 				v[0xF] = 0;
@@ -359,22 +369,22 @@ int main (int argc,char ** argv)
 				break;
 				
 				case 0xE000:
-				switch(opcode & 0x00FF){
+				switch(kk){
 
 					case 0x009E:
-					if(keyboard[v[(opcode & 0x0F00)>>8]])PC += 2;
+					if(keyboard[v[X]])PC += 2;
 					break;						
 					case 0x00A1:
-					if(!keyboard[v[(opcode & 0x0F00)>>8]])PC+=2;
+					if(!keyboard[v[X]])PC+=2;
 					break;
 
 				}
 				break;
 				case 0xF000:
 				
-				switch(opcode & 0x00FF){
+				switch(kk){
 					case 0x0007:;
-					uint8_t X = (opcode & 0x0F00) >> 8;
+					uint8_t X = X;
 					v[X] = delay_timer;
 					break;
 					case 0x000A:;
