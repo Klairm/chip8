@@ -217,9 +217,9 @@ int main (int argc,char ** argv)
 			PC +=2;
 			uint8_t X = (opcode & 0xF00) >> 8;
 			uint8_t Y = (opcode & 0x00F0) >> 4;
-			uint16_t nnn = opcode & 0x0FFF;
-			uint8_t kk = opcode & 0x00FF;
-			uint8_t n = opcode & 0x000F;
+			uint16_t nnn = (opcode & 0x0FFF);
+			uint8_t kk = (opcode & 0x00FF);
+			uint8_t n = (opcode & 0x000F);
 
 
 			printf("opcode: %x \n", opcode);
@@ -248,7 +248,7 @@ int main (int argc,char ** argv)
 				}
 				case 0x1000:;
 				 
-				PC = (nnn);
+				PC = nnn;
 				break;
 				
 
@@ -300,7 +300,7 @@ int main (int argc,char ** argv)
 						v[0xF] = 1;
 					else
 						v[0xF] = 0;
-					v[X] = i;
+					v[X] = i & 0xFF;
 					break;
 
 					case 0x0005:
@@ -317,13 +317,13 @@ int main (int argc,char ** argv)
 					case 0x0007:
 					if(v[Y] > v[X]) v[0xF] = 1;
 					else v[0xF] = 0;
-					v[X] = v[X] - v[(opcode & 0x00F0)>> 4 ];
+					v[X] -= v[Y];
 					break;
 
 					case 0x000E:
-					if(v[X ] >>7 == 1) v[0x0F] = 1;
+					if(v[X] >>7 == 1) v[0x0F] = 1;
 					else v[0x0F] = 0;
-					v[(opcode & 0x0F00 )>> 8] = v[X] * 2;
+					v[X] = v[X] * 2;
 					break; 				
 				}
 				break;
@@ -363,6 +363,7 @@ int main (int argc,char ** argv)
 					}
 
 				}
+
 				drawflag = true;
 
 				
@@ -441,8 +442,7 @@ int main (int argc,char ** argv)
 			initChip8();
 			loadRom();	
 			while(!quit){
-
-			SDL_Delay(5);
+				SDL_Delay(5);
 				SDL_PollEvent(&event);
 				switch(event.type)
 				{
@@ -450,7 +450,7 @@ int main (int argc,char ** argv)
 					quit = 1;
 					break;
 
-					case SDL_KEYDOWN:;
+					case SDL_KEYDOWN:
 					
 					switch (event.key.keysym.sym)
 					{
@@ -462,31 +462,37 @@ int main (int argc,char ** argv)
 						case SDLK_x:
 						{
 							keyboard[0] = 1;
+							printf("X press");
 						} break;
 
 						case SDLK_1:
 						{
 							keyboard[1] = 1;
+							printf("1 press");
 						} break;
 
 						case SDLK_2:
 						{
 							keyboard[2] = 1;
+							printf("2 press");
 						} break;
 
 						case SDLK_3:
 						{
 							keyboard[3] = 1;
+							printf("3 press");
 						} break;
 
 						case SDLK_q:
 						{
 							keyboard[4] = 1;
+							printf("Q press");
 						} break;
 
 						case SDLK_w:
 						{
 							keyboard[5] = 1;
+							printf("W press");
 						} break;
 
 						case SDLK_e:
@@ -538,10 +544,11 @@ int main (int argc,char ** argv)
 						{
 							keyboard[0xF] = 1;
 						} break;
-					}
 					break;
-
-					case SDL_KEYUP:;
+					}
+					
+				
+					case SDL_KEYUP:
 					
 					switch (event.key.keysym.sym)
 					{
@@ -628,8 +635,9 @@ int main (int argc,char ** argv)
 					}
 					break;
 				}
-				execute();
 				draw();
+				execute();
+			
 			}
 
 
