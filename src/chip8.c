@@ -28,8 +28,8 @@ int main (int argc,char ** argv)
 	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
 	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
-	//SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	//SDL_RenderClear(renderer);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
 	//SDL_RenderPresent(renderer);
 	
 	
@@ -203,9 +203,9 @@ int main (int argc,char ** argv)
 					}
 
 				}
-
-				SDL_RenderPresent(renderer);	
 				drawflag = false;
+				SDL_RenderPresent(renderer);	
+				
 			}
 
 
@@ -213,22 +213,27 @@ int main (int argc,char ** argv)
 
 		void execute(){
 
-			opcode = memory[PC] << 8 ;
-			opcode |= memory[PC + 1];
+			opcode = memory[PC] << 8 | memory[PC + 1];
 			PC +=2;
-			//if(PC == (MEMSIZE)){
-			//	PC = 0;
-			//}
 
 
 			printf("opcode: %x \n", opcode);
+			printf("program counter: %x \n",PC);
+			
+
+			
+
+			
 
 
-			switch (opcode & 0xF000){			
+			switch (opcode & 0xF000){
+				
 				case 0x0000:
 				switch(opcode & 0x00FF){
+				
 				case 0x000E:
 				memset(gfx, 0, 2048);
+				PC +=2;
 				break;
 				case 0x00EE:
 				--sp;
@@ -332,7 +337,7 @@ int main (int argc,char ** argv)
 				unsigned short x = v[(opcode & 0x0F00) >> 8];
 				unsigned short y = v[(opcode & 0x00F0) >> 4];
 				unsigned short height = opcode & 0x000F;
-				unsigned short pixel;
+				uint8_t pixel;
 
 				v[0xF] = 0;
 				for (int yline = 0; yline < height; yline++) {
@@ -350,7 +355,7 @@ int main (int argc,char ** argv)
 				}
 				drawflag = true;
 
-				PC += 2;
+				
 				break;
 				
 				case 0xE000:
@@ -366,34 +371,36 @@ int main (int argc,char ** argv)
 				}
 				break;
 				case 0xF000:
+				
 				switch(opcode & 0x00FF){
-					case 0x0007:
-					v[(opcode & 0x0F00) >>8] = delay_timer;
+					case 0x0007:;
+					uint8_t X = (opcode & 0x0F00) >> 8;
+					v[X] = delay_timer;
 					break;
 					case 0x000A:;
-					uint8_t X = (opcode & 0x0F00) >> 8;
-					kboard(X);
+					
+					kboard(v[X]);
 					break;
 					case 0x0015:
-					delay_timer = v[(opcode & 0xF00) >> 8];
+					delay_timer = v[X];
 					break;
 					case 0x0018:
-					sound_timer = v[(opcode & 0xF00) >>8];
+					sound_timer = v[X];
 					break;
 					case 0x001E:;
-					I = I + v[(opcode & 0x0F00)>>8];
+					I = I + v[X];
 					break;
 					
 					case 0x0029:
-					I = v[(opcode & 0x0F00) >> 8] * 0x5;
+					I = v[X] * 0x5;
 					break;
 					case 0x0033:;
-						//uint8_t X = v[(opcode & 0x0F00)>>8];
-					memory[I+2] = X % 10;
-					X /= 10;
-					memory[I+2] = X % 10;
-					X /=10;
-					memory[I] = X % 10;
+						
+					memory[I+2] = v[X] % 10;
+					v[X] /= 10;
+					memory[I+2] = v[X] % 10;
+					v[X] /=10;
+					memory[I] = v[X] % 10;
 					break;
 					
 
@@ -425,7 +432,7 @@ int main (int argc,char ** argv)
 			loadRom();	
 			while(!quit){
 
-	SDL_Delay(5);
+			SDL_Delay(5);
 				SDL_PollEvent(&event);
 				switch(event.type)
 				{
