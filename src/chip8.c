@@ -235,19 +235,19 @@ int main (int argc,char ** argv)
 				
 				case 0x0000:
 				switch(kk){
-				
-				case 0x000E:
-				memset(gfx, 0, 2048);
-				PC +=2;
-				break;
-				case 0x00EE:
-				--sp;
-				PC = stack[sp];
-				break;
-				default: printf("Opcode error 0xxx -> %x\n",opcode );
+
+					case 0x000E:
+					memset(gfx, 0, 2048);
+					PC +=2;
+					break;
+					case 0x00EE:
+					--sp;
+					PC = stack[sp];
+					break;
+					default: printf("Opcode error 0xxx -> %x\n",opcode );
 				}
 				case 0x1000:;
-				 
+
 				PC = nnn;
 				break;
 				
@@ -293,14 +293,15 @@ int main (int argc,char ** argv)
 					v[X ] ^= v[Y];
 					break;
 
-					case 0x0004:;
-					int i;
-					i = (int)(v[X]) + (int)(v[Y]);
-					if (i > 255)
-						v[0xF] = 1;
-					else
-						v[0xF] = 0;
-					v[X] = i & 0xFF;
+					case 0x0004:{
+						int i;
+						i = (int)(v[X]) + (int)(v[Y]);
+						if (i > 255)
+							v[0xF] = 1;
+						else
+							v[0xF] = 0;
+						v[X] = i & 0xFF;
+					}
 					break;
 
 					case 0x0005:
@@ -366,6 +367,7 @@ int main (int argc,char ** argv)
 
 				drawflag = true;
 
+
 				
 				break;
 				
@@ -384,11 +386,11 @@ int main (int argc,char ** argv)
 				case 0xF000:
 				
 				switch(kk){
-					case 0x0007:;
-					uint8_t X = X;
+					case 0x0007:
+					
 					v[X] = delay_timer;
 					break;
-					case 0x000A:;
+					case 0x000A:
 					
 					kboard(v[X]);
 					break;
@@ -398,15 +400,15 @@ int main (int argc,char ** argv)
 					case 0x0018:
 					sound_timer = v[X];
 					break;
-					case 0x001E:;
+					case 0x001E:
 					I = I + v[X];
 					break;
 					
 					case 0x0029:
 					I = v[X] * 0x5;
 					break;
-					case 0x0033:;
-						
+					case 0x0033:
+
 					memory[I+2] = v[X] % 10;
 					v[X] /= 10;
 					memory[I+2] = v[X] % 10;
@@ -422,7 +424,7 @@ int main (int argc,char ** argv)
 					}
 					break;
 
-					case 0x0065:;
+					case 0x0065:
 					
 					for (uint8_t i = 0; i <= X; ++i){
 						v[i] = memory[I+ i];	
@@ -435,7 +437,7 @@ int main (int argc,char ** argv)
 
 				default:
 				printf("Opcode error -> %x \n",opcode);
-      			PC += 2;
+				PC += 2;
 				
 			}}	
 			
@@ -544,10 +546,10 @@ int main (int argc,char ** argv)
 						{
 							keyboard[0xF] = 1;
 						} break;
-					break;
+						break;
 					}
 					
-				
+
 					case SDL_KEYUP:
 					
 					switch (event.key.keysym.sym)
@@ -637,7 +639,7 @@ int main (int argc,char ** argv)
 				}
 				draw();
 				execute();
-			
+
 			}
 
 
