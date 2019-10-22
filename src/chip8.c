@@ -5,7 +5,6 @@
 #include<SDL2/SDL.h>
 
 
-
 #define MEMSIZE 4096
 
 int main (int argc,char ** argv)
@@ -156,494 +155,505 @@ int main (int argc,char ** argv)
 		memset(stack,0,16);
 		memset(memory,0,4096);
 		memset(v,0,16);
-		for(int i = 0; i < 80; ++i){
-			memory[i] = chip8_fontset[i];}	
-		}
+		memset(gfx,0,2048);
+		memset(keyboard,0,16);
+		memset(chip8_fontset,0,80);
+	}
 
-		void loadRom(){
-			FILE * fp = fopen(argv[1],"rb");
-			if(fp == NULL)
-			{
-				fprintf(stderr,"Can't open the file rom \n");
-				exit(1);
-			}	
-			fseek(fp, 0, SEEK_END);
-			int size = ftell(fp); 
-			fseek(fp, 0 ,SEEK_SET);
-
-			fread(memory+0x200,sizeof(uint16_t),size,fp);
-		}
-
-		void draw()
+	void loadRom(){
+		FILE * fp = fopen(argv[1],"rb");
+		if(fp == NULL)
 		{
-			void *pixels;
-			int pitch;
-			SDL_Rect r;
-			int x, y;
-			r.x = 0;
-			r.y = 0;
-			r.w = 1;
-			r.h = 1;
+			fprintf(stderr,"Can't open the file rom \n");
+			exit(1);
+		}	
+		fseek(fp, 0, SEEK_END);
+		int size = ftell(fp); 
+		fseek(fp, 0 ,SEEK_SET);
 
-			if (drawflag)
+		fread(memory+0x200,sizeof(uint16_t),size,fp);
+	}
+
+	void draw()
+	{
+		void *pixels;
+		int pitch;
+		SDL_Rect r;
+		int x, y;
+		r.x = 0;
+		r.y = 0;
+		r.w = 1;
+		r.h = 1;
+
+		if (drawflag)
+		{
+			SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
+			SDL_RenderClear(renderer);
+			SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
+			for(x=0;x<64;x++)
 			{
-				SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
-				SDL_RenderClear(renderer);
-				SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
-				for(x=0;x<64;x++)
+				for(y=0;y<32;y++)
 				{
-					for(y=0;y<32;y++)
+					if (gfx[(x) + ((y) * 64)] == 1)
 					{
-						if (gfx[(x) + ((y) * 64)] == 1)
-						{
-							r.x = x;
-							r.y = y;
-							SDL_RenderFillRect( renderer, &r );
-						}
+						r.x = x;
+						r.y = y;
+						SDL_RenderFillRect( renderer, &r );
 					}
-
 				}
-				drawflag = false;
-				SDL_RenderPresent(renderer);	
-				
-			}
 
+			}
+			drawflag = false;
+			SDL_RenderPresent(renderer);	
 
 		}
 
-		void execute(){
 
-			opcode = memory[PC] << 8 | memory[PC + 1];
-			PC +=2;
-			uint8_t X = (opcode & 0xF00) >> 8;
-			uint8_t Y = (opcode & 0x00F0) >> 4;
-			uint16_t nnn = (opcode & 0x0FFF);
-			uint8_t kk = (opcode & 0x00FF);
-			uint8_t n = (opcode & 0x000F);
+	}
 
+	void execute(){
 
-			printf("opcode: %x \n", opcode);
-			printf("program counter: %x \n",PC);
-
-
-			
-
-			
+		opcode = memory[PC] << 8 | memory[PC + 1];
+		PC +=2;
+		uint8_t X = (opcode & 0xF00) >> 8;
+		uint8_t Y = (opcode & 0x00F0) >> 4;
+		uint16_t nnn = (opcode & 0x0FFF);
+		uint8_t kk = (opcode & 0x00FF);
+		uint8_t n = (opcode & 0x000F);
 
 
-			switch (opcode & 0xF000){
-				
-				case 0x0000:
-				switch(kk){
+		printf("opcode: %x \n", opcode);
+		printf("program counter: %x \n",PC);
 
-					case 0x000E:
-					memset(gfx, 0, 2048);
-					PC +=2;
-					break;
-					case 0x00EE:
-					--sp;
-					PC = stack[sp];
-					break;
-					default: printf("Opcode error 0xxx -> %x\n",opcode );
-				}
-				case 0x1000:;
 
-				PC = nnn;
-				break;
-				
 
-				case 0x2000:
-				stack[sp] = PC;
-				++sp;
-				PC = nnn;
-				break;
 
-				case 0x3000: 
-				if (v[X] == kk){ PC += 2;}
-				break;
 
-				case 0x4000:
-				if (v[X] != kk) PC+=2;
-				break;
 
-				case 0x5000:
-				if (v[X] == v[Y]) PC+=2;
-				break;
-				case 0x6000:
-				v[X] = kk;
-				break;
-				case 0x7000:
-				v[X] += kk;
-				break;
-				case 0x8000:
-				switch(n){
-					case 0x0000:
-					v[X ] = v[Y];
-					break;
 
-					case 0x0001:
-					v[X ] |= v[Y];
-					break;
+		switch (opcode & 0xF000){
+			case 0x0000:
 
-					case 0x0002:
-					v[X ] &= v[Y];
-					break;
+			switch(opcode & 0x00FF){
 
-					case 0x0003:
-					v[X ] ^= v[Y];
-					break;
-
-					case 0x0004:{
-						int i;
-						i = (int)(v[X]) + (int)(v[Y]);
-						if (i > 255)
-							v[0xF] = 1;
-						else
-							v[0xF] = 0;
-						v[X] = i & 0xFF;
-					}
-					break;
-
-					case 0x0005:
-					if (v[(X)  > Y ]) v[0xF] = 1;
-					else v[0xF] = 0;
-					v[X] -= Y;
-					break; 
-					
-					case 0x0006:
-					if(v[X] & 1 == 1) v[(opcode & 0xF)] = 1;
-					else v[opcode & 0xF] = 0;
-					v[X] = X / 2;
-					
-					case 0x0007:
-					if(v[Y] > v[X]) v[0xF] = 1;
-					else v[0xF] = 0;
-					v[X] -= v[Y];
-					break;
-
-					case 0x000E:
-					if(v[X] >>7 == 1) v[0x0F] = 1;
-					else v[0x0F] = 0;
-					v[X] = v[X] * 2;
-					break; 				
-				}
-				break;
-				case 0x9000:
-				if(v[X] != v[Y]) PC += 2;
-				break;
-
-				case 0xA000:
-				I = nnn;
-				break;
-
-				case 0xB000:
-				PC = (nnn) + v[0x0];
-				break;
-
-				case 0xC000:
-				v[X] = (rand() % 0x100) & (kk);
-				break;
-
-				case 0xD000:;
-				unsigned short x = v[X];
-				unsigned short y = v[Y];
-				unsigned short height = n;
-				uint8_t pixel;
-
-				v[0xF] = 0;
-				for (int yline = 0; yline < height; yline++) {
-					pixel = memory[I + yline];
-					for(int xline = 0; xline < 8; xline++) {
-						if((pixel & (0x80 >> xline)) != 0) {
-							if(gfx[(x + xline + ((y + yline) * 64))] == 1){
-								v[0xF] = 1;                                   
-							}
-							gfx[x + xline + ((y + yline) * 64)] ^= 1;
-						}
-
-					}
-
-				}
-
+				case 0x00E0:
+				memset(gfx, 0, 2048);
 				drawflag = true;
-
-
-				
+					//PC +=2;
 				break;
-				
-				case 0xE000:
-				switch(kk){
+				case 0x00EE:
+				--sp;
+				PC = stack[sp];
+				break;
+				default: printf("Opcode error 0xxx -> %x\n",opcode ); 
+			}break;
+			case 0x1000:
 
-					case 0x009E:
-					if(keyboard[v[X]])PC += 2;
-					break;						
-					case 0x00A1:
-					if(!keyboard[v[X]])PC+=2;
-					break;
+			PC = nnn;
+			break;
 
+				//8e
+
+
+
+			case 0x2000:
+			stack[sp] = PC;
+			++sp;
+			PC = nnn;
+			break;
+
+			case 0x3000: 
+			if (v[X] == kk) PC += 2;
+			break;
+
+			case 0x4000:
+			if (v[X] != kk) PC+=2;
+			break;
+
+			case 0x5000:
+			if (v[X] == v[Y]) PC+=2;
+			break;
+			case 0x6000:
+			v[X] = kk;
+			break;
+			case 0x7000:
+			v[X] += kk;
+			break;
+			case 0x8000:
+			switch(n){
+				case 0x0000:
+				v[X ] = v[Y];
+				break;
+
+				case 0x0001:
+				v[X ] |= v[Y];
+				break;
+
+				case 0x0002:
+				v[X ] &= v[Y];
+				break;
+
+				case 0x0003:
+				v[X ] ^= v[Y];
+				break;
+
+				case 0x0004:{
+					int i;
+					i = (int)(v[X]) + (int)(v[Y]);
+					if (i > 255)
+						v[0xF] = 1;
+					else
+						v[0xF] = 0;
+					v[X] = i & 0xFF;
 				}
 				break;
-				case 0xF000:
-				
-				switch(kk){
-					case 0x0007:
-					
-					v[X] = delay_timer;
-					break;
-					case 0x000A:
-					
-					kboard(v[X]);
-					break;
-					case 0x0015:
-					delay_timer = v[X];
-					break;
-					case 0x0018:
-					sound_timer = v[X];
-					break;
-					case 0x001E:
-					I = I + v[X];
-					break;
-					
-					case 0x0029:
-					I = v[X] * 0x5;
-					break;
-					case 0x0033:
 
-					memory[I+2] = v[X] % 10;
-					v[X] /= 10;
-					memory[I+2] = v[X] % 10;
-					v[X] /=10;
-					memory[I] = v[X] % 10;
-					break;
-					
+				case 0x0005:
+				if (v[(X)  > v[Y] ]) v[0xF] = 1;
+				else v[0xF] = 0;
+				v[X] -= v[Y];
+				break; 
 
-					case 0x0055:
-					
-					for (uint8_t i = 0; i <= X; ++i){
-						memory[I+ i] = v[i];	
+				case 0x0006:
+				v[0xF] = v[(opcode & 0x0F00) >> 8] & 0x1;
+                v[(opcode & 0x0F00) >> 8] >>= 1;
+				         		          		
+
+
+				case 0x0007:
+				if(v[Y] > v[X]) v[0xF] = 1;
+				else v[0xF] = 0;
+				v[X] -= v[Y];
+				break;
+
+				case 0x000E:
+				v[0xF] = v[X] >> 7;
+                v[X] <<= 1;
+
+				break; 	
+				default: printf("Opcode error 8xxx -> %x\n",opcode );			
+			}
+			break;
+			case 0x9000:
+			if(v[X] != v[Y]) PC += 2;
+			break;
+
+			case 0xA000:
+			I = nnn;
+			break;
+
+			case 0xB000:
+			PC = (nnn) + v[0x0];
+			break;
+
+			case 0xC000:
+			v[X] = (rand() % 0x100) & (kk);
+			break;
+
+			case 0xD000:;
+			unsigned short x = v[X];
+			unsigned short y = v[Y];
+			unsigned short height = n;
+			uint8_t pixel;
+
+			v[0xF] = 0;
+			for (int yline = 0; yline < height; yline++) {
+				pixel = memory[I + yline];
+				for(int xline = 0; xline < 8; xline++) {
+					if((pixel & (0x80 >> xline)) != 0) {
+						if(gfx[(x + xline + ((y + yline) * 64))] == 1){
+							v[0xF] = 1;                                   
+						}
+						gfx[x + xline + ((y + yline) * 64)] ^= 1;
 					}
-					break;
-
-					case 0x0065:
-					
-					for (uint8_t i = 0; i <= X; ++i){
-						v[i] = memory[I+ i];	
-					}
-					break;
 
 				}
-				break;	
-
-
-				default:
-				printf("Opcode error -> %x \n",opcode);
-				PC += 2;
-				
-			}}	
-			
-			initChip8();
-			loadRom();	
-			while(!quit){
-				SDL_Delay(5);
-				SDL_PollEvent(&event);
-				switch(event.type)
-				{
-					case SDL_QUIT:
-					quit = 1;
-					break;
-
-					case SDL_KEYDOWN:
-					
-					switch (event.key.keysym.sym)
-					{
-						case SDLK_ESCAPE:
-						{
-							quit = 1;
-						} break;
-
-						case SDLK_x:
-						{
-							keyboard[0] = 1;
-							printf("X press");
-						} break;
-
-						case SDLK_1:
-						{
-							keyboard[1] = 1;
-							printf("1 press");
-						} break;
-
-						case SDLK_2:
-						{
-							keyboard[2] = 1;
-							printf("2 press");
-						} break;
-
-						case SDLK_3:
-						{
-							keyboard[3] = 1;
-							printf("3 press");
-						} break;
-
-						case SDLK_q:
-						{
-							keyboard[4] = 1;
-							printf("Q press");
-						} break;
-
-						case SDLK_w:
-						{
-							keyboard[5] = 1;
-							printf("W press");
-						} break;
-
-						case SDLK_e:
-						{
-							keyboard[6] = 1;
-						} break;
-
-						case SDLK_a:
-						{
-							keyboard[7] = 1;
-						} break;
-
-						case SDLK_s:
-						{
-							keyboard[8] = 1;
-						} break;
-
-						case SDLK_d:
-						{
-							keyboard[9] = 1;
-						} break;
-
-						case SDLK_z:
-						{
-							keyboard[0xA] = 1;
-						} break;
-
-						case SDLK_c:
-						{
-							keyboard[0xB] = 1;
-						} break;
-
-						case SDLK_4:
-						{
-							keyboard[0xC] = 1;
-						} break;
-
-						case SDLK_r:
-						{
-							keyboard[0xD] = 1;
-						} break;
-
-						case SDLK_f:
-						{
-							keyboard[0xE] = 1;
-						} break;
-
-						case SDLK_v:
-						{
-							keyboard[0xF] = 1;
-						} break;
-						break;
-					}
-					
-
-					case SDL_KEYUP:
-					
-					switch (event.key.keysym.sym)
-					{
-						case SDLK_x:
-						{
-							keyboard[0] = 0;
-							
-						} break;
-
-						case SDLK_1:
-						{
-							keyboard[1] = 0;
-						} break;
-
-						case SDLK_2:
-						{
-							keyboard[2] = 0;
-						} break;
-
-						case SDLK_3:
-						{
-							keyboard[3] = 0;
-						} break;
-
-						case SDLK_q:
-						{
-							keyboard[4] = 0;
-						} break;
-
-						case SDLK_w:
-						{
-							keyboard[5] = 0;
-						} break;
-
-						case SDLK_e:
-						{
-							keyboard[6] = 0;
-						} break;
-
-						case SDLK_a:
-						{
-							keyboard[7] = 0;
-						} break;
-
-						case SDLK_s:
-						{
-							keyboard[8] = 0;
-						} break;
-
-						case SDLK_d:
-						{
-							keyboard[9] = 0;
-						} break;
-
-						case SDLK_z:
-						{
-							keyboard[0xA] = 0;
-						} break;
-
-						case SDLK_c:
-						{
-							keyboard[0xB] = 0;
-						} break;
-
-						case SDLK_4:
-						{
-							keyboard[0xC] = 0;
-						} break;
-
-						case SDLK_r:
-						{
-							keyboard[0xD] = 0;
-						} break;
-
-						case SDLK_f:
-						{
-							keyboard[0xE] = 0;
-						} break;
-
-						case SDLK_v:
-						{
-							keyboard[0xF] = 0;
-						} break;
-					}
-					break;
-				}
-				draw();
-				execute();
 
 			}
 
+			drawflag = true;
 
 
-			
-			return 0;
+
+			break;
+
+			case 0xE000:
+			switch(kk){
+
+				case 0x009E:
+				if(keyboard[v[X]])PC += 2;
+				break;						
+				case 0x00A1:
+				if(!keyboard[v[X]])PC+=2;
+				break;
+
+			}
+			break;
+			case 0xF000:
+
+			switch(kk){
+				case 0x0007:
+
+				v[X] = delay_timer;
+				break;
+				case 0x000A:
+
+				kboard(v[X]);
+				break;
+				case 0x0015:
+				delay_timer = v[X];
+				break;
+				case 0x0018:
+				sound_timer = v[X];
+				break;
+				case 0x001E:
+				I = I + v[X];
+				break;
+
+				case 0x0029:
+				I = v[X] * 0x5;
+				break;
+
+				case 0x0033:
+				memory[I + 2] = v[X] % 10;
+				v[X] /= 10;
+
+					// Tens-place
+				memory[I + 1] = v[X] % 10;
+				v[X] /= 10;
+
+					// Hundreds-place
+				memory[I] = v[X] % 10;
+				break;
+
+
+				case 0x0055:
+
+				for (uint8_t i = 0; i <= X; ++i){
+					memory[I+ i] = v[i];	
+				}
+				break;
+
+				case 0x0065:
+
+				for (uint8_t i = 0; i <= X; ++i){
+					v[i] = memory[I+ i];	
+				}
+				break;
+
+			}
+			break;	
+
+
+			default:
+			printf("Opcode error -> %x \n",opcode);
+			PC += 2;
+
+		}}	
+
+		initChip8();
+		loadRom();	
+		while(!quit){
+			SDL_Delay(5);
+			SDL_PollEvent(&event);
+			switch(event.type)
+			{
+				case SDL_QUIT:
+				quit = 1;
+				break;
+
+				case SDL_KEYDOWN:
+
+				switch (event.key.keysym.sym)
+				{
+					case SDLK_ESCAPE:
+					{
+						quit = 1;
+					} break;
+
+					case SDLK_x:
+					{
+						keyboard[0] = 1;
+						printf("X press");
+					} break;
+
+					case SDLK_1:
+					{
+						keyboard[1] = 1;
+						printf("1 press");
+					} break;
+
+					case SDLK_2:
+					{
+						keyboard[2] = 1;
+						printf("2 press");
+					} break;
+
+					case SDLK_3:
+					{
+						keyboard[3] = 1;
+						printf("3 press");
+					} break;
+
+					case SDLK_q:
+					{
+						keyboard[4] = 1;
+						printf("Q press");
+					} break;
+
+					case SDLK_w:
+					{
+						keyboard[5] = 1;
+						printf("W press");
+					} break;
+
+					case SDLK_e:
+					{
+						keyboard[6] = 1;
+					} break;
+
+					case SDLK_a:
+					{
+						keyboard[7] = 1;
+					} break;
+
+					case SDLK_s:
+					{
+						keyboard[8] = 1;
+					} break;
+
+					case SDLK_d:
+					{
+						keyboard[9] = 1;
+					} break;
+
+					case SDLK_z:
+					{
+						keyboard[0xA] = 1;
+					} break;
+
+					case SDLK_c:
+					{
+						keyboard[0xB] = 1;
+					} break;
+
+					case SDLK_4:
+					{
+						keyboard[0xC] = 1;
+					} break;
+
+					case SDLK_r:
+					{
+						keyboard[0xD] = 1;
+					} break;
+
+					case SDLK_f:
+					{
+						keyboard[0xE] = 1;
+					} break;
+
+					case SDLK_v:
+					{
+						keyboard[0xF] = 1;
+					} break;
+					break;
+				}
+
+
+				case SDL_KEYUP:
+
+				switch (event.key.keysym.sym)
+				{
+					case SDLK_x:
+					{
+						keyboard[0] = 0;
+
+					} break;
+
+					case SDLK_1:
+					{
+						keyboard[1] = 0;
+					} break;
+
+					case SDLK_2:
+					{
+						keyboard[2] = 0;
+					} break;
+
+					case SDLK_3:
+					{
+						keyboard[3] = 0;
+					} break;
+
+					case SDLK_q:
+					{
+						keyboard[4] = 0;
+					} break;
+
+					case SDLK_w:
+					{
+						keyboard[5] = 0;
+					} break;
+
+					case SDLK_e:
+					{
+						keyboard[6] = 0;
+					} break;
+
+					case SDLK_a:
+					{
+						keyboard[7] = 0;
+					} break;
+
+					case SDLK_s:
+					{
+						keyboard[8] = 0;
+					} break;
+
+					case SDLK_d:
+					{
+						keyboard[9] = 0;
+					} break;
+
+					case SDLK_z:
+					{
+						keyboard[0xA] = 0;
+					} break;
+
+					case SDLK_c:
+					{
+						keyboard[0xB] = 0;
+					} break;
+
+					case SDLK_4:
+					{
+						keyboard[0xC] = 0;
+					} break;
+
+					case SDLK_r:
+					{
+						keyboard[0xD] = 0;
+					} break;
+
+					case SDLK_f:
+					{
+						keyboard[0xE] = 0;
+					} break;
+
+					case SDLK_v:
+					{
+						keyboard[0xF] = 0;
+					} break;
+				}
+				break;
+			}
+			draw();
+			execute();
+
 		}
+
+
+
+
+		return 0;
+	}
