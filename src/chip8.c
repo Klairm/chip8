@@ -76,74 +76,10 @@ int main (int argc,char ** argv)
 	
 	bool drawflag;
 
-	void kboard(uint8_t X){
+	//void kboard(uint8_t X){
 
-		if(keyboard[0]==1){
-			v[X] = 0;
-		}
-		else if(keyboard[1]==1){
-			v[X] = 1;
-		}
-		else if(keyboard[2]==1){
-			v[X] = 2;
-		}
-		else if (keyboard[3]==1)
-		{
-			v[X] = 3;
-		}
-		else if (keyboard[4]==1)
-		{
-			v[X] = 4;
-		}
-		else if (keyboard[5]==1)
-		{
-			v[X] = 5;
-		}
-		else if (keyboard[6]==1)
-		{
-			v[X] = 6;
-		}
-		else if (keyboard[7]==1)
-		{
-			v[X] = 7;
-		}
-		else if (keyboard[8]==1)
-		{
-			v[X] = 8;
-		}
-		else if (keyboard[9]==1)
-		{
-			v[X] = 9;
-		}
-		else if (keyboard[10]==1)
-		{
-			v[X] = 10;
-		}
-		else if (keyboard[11]==1)
-		{
-			v[X] = 11;
-		}
-		else if (keyboard[12]==1)
-		{
-			v[X] = 12;
-		}
-		else if (keyboard[13]==1)
-		{
-			v[X] = 13;
-		}
-		else if (keyboard[14]== 1)
-		{
-			v[X] = 14;
-		}
-		else if (keyboard[15] == 1)
-		{
-			v[X] = 15;
-		}
-		else
-		{
-			PC -= 2;
-		}
-	}	
+	
+	//}	
 //Initialize everything
 	void initChip8(){	
 		delay_timer= 0;
@@ -206,11 +142,11 @@ int main (int argc,char ** argv)
 
 			}
 			SDL_RenderPresent(renderer);
-						
+
 
 		}
 
-drawflag = false;
+		drawflag = false;
 
 	}
 
@@ -218,7 +154,7 @@ drawflag = false;
 
 		opcode = memory[PC] << 8 | memory[PC + 1];
 		PC +=2;
-		uint8_t X = (opcode & 0xF00) >> 8;
+		uint8_t X = (opcode & 0x0F00) >> 8;
 		uint8_t Y = (opcode & 0x00F0) >> 4;
 		uint16_t nnn = (opcode & 0x0FFF);
 		uint8_t kk = (opcode & 0x00FF);
@@ -318,9 +254,10 @@ drawflag = false;
 				break; 
 
 				case 0x0006:
-				v[0xF] = v[X] & 0x1;
-                v[Y] =v[X] >> 1;
-				         		          		
+				v[0xF] = v[X] &1;
+				v[X] >>= 1;
+				break;
+
 
 
 				case 0x0007:
@@ -331,7 +268,7 @@ drawflag = false;
 
 				case 0x000E:
 				v[0xF] = v[X] >> 7;
-                v[Y] = v[X] << 1;
+				v[Y] = v[X] << 1;
 
 				break; 	
 				default: printf("Opcode error 8xxx -> %x\n",opcode );			
@@ -400,8 +337,72 @@ drawflag = false;
 				v[X] = delay_timer;
 				break;
 				case 0x000A:
-
-				kboard(X);
+				if(keyboard[0]){
+					v[X] = 0;
+				}
+				else if(keyboard[1]){
+					v[X] = 1;
+				}
+				else if(keyboard[2]){
+					v[X] = 2;
+				}
+				else if (keyboard[3])
+				{
+					v[X] = 3;
+				}
+				else if (keyboard[4])
+				{
+					v[X] = 4;
+				}
+				else if (keyboard[5])
+				{
+					v[X] = 5;
+				}
+				else if (keyboard[6])
+				{
+					v[X] = 6;
+				}
+				else if (keyboard[7])
+				{
+					v[X] = 7;
+				}
+				else if (keyboard[8])
+				{
+					v[X] = 8;
+				}
+				else if (keyboard[9])
+				{
+					v[X] = 9;
+				}
+				else if (keyboard[10])
+				{
+					v[X] = 10;
+				}
+				else if (keyboard[11])
+				{
+					v[X] = 11;
+				}
+				else if (keyboard[12])
+				{
+					v[X] = 12;
+				}
+				else if (keyboard[13])
+				{
+					v[X] = 13;
+				}
+				else if (keyboard[14])
+				{
+					v[X] = 14;
+				}
+				else if (keyboard[15])
+				{
+					v[X] = 15;
+				}
+				else
+				{
+					PC -= 2;
+				}
+				//kboard(X);
 				break;
 				case 0x0015:
 				delay_timer = v[X];
@@ -470,15 +471,18 @@ drawflag = false;
 				switch (event.key.keysym.sym)
 				{
 					case SDLK_ESCAPE:
-					{
-						quit = 1;
-					} break;
-
+					
+					quit = 1;
+					break;
+					case SDLK_F1:
+					initChip8();
+					loadRom();
+					break;
 					case SDLK_x:
-					{
-						keyboard[0] = 1;
-						printf("X press");
-					} break;
+					
+					keyboard[0] = 1;
+					printf("X press");
+					break;
 
 					case SDLK_1:
 					{
@@ -651,8 +655,8 @@ drawflag = false;
 				break;
 			}
 
-			 if (delay_timer > 0)
-        		--delay_timer;
+			if (delay_timer > 0)
+				--delay_timer;
 			execute();
 			draw();
 			
