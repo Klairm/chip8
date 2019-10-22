@@ -29,7 +29,7 @@ int main (int argc,char ** argv)
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
-	//SDL_RenderPresent(renderer);
+	SDL_RenderPresent(renderer);
 	
 	
 	SDL_Texture * screen;
@@ -78,64 +78,64 @@ int main (int argc,char ** argv)
 
 	void kboard(uint8_t X){
 
-		if(keyboard[0]){
+		if(keyboard[0]==1){
 			v[X] = 0;
 		}
-		else if(keyboard[1]){
+		else if(keyboard[1]==1){
 			v[X] = 1;
 		}
-		else if(keyboard[2]){
+		else if(keyboard[2]==1){
 			v[X] = 2;
 		}
-		else if (keyboard[3])
+		else if (keyboard[3]==1)
 		{
 			v[X] = 3;
 		}
-		else if (keyboard[4])
+		else if (keyboard[4]==1)
 		{
 			v[X] = 4;
 		}
-		else if (keyboard[5])
+		else if (keyboard[5]==1)
 		{
 			v[X] = 5;
 		}
-		else if (keyboard[6])
+		else if (keyboard[6]==1)
 		{
 			v[X] = 6;
 		}
-		else if (keyboard[7])
+		else if (keyboard[7]==1)
 		{
 			v[X] = 7;
 		}
-		else if (keyboard[8])
+		else if (keyboard[8]==1)
 		{
 			v[X] = 8;
 		}
-		else if (keyboard[9])
+		else if (keyboard[9]==1)
 		{
 			v[X] = 9;
 		}
-		else if (keyboard[10])
+		else if (keyboard[10]==1)
 		{
 			v[X] = 10;
 		}
-		else if (keyboard[11])
+		else if (keyboard[11]==1)
 		{
 			v[X] = 11;
 		}
-		else if (keyboard[12])
+		else if (keyboard[12]==1)
 		{
 			v[X] = 12;
 		}
-		else if (keyboard[13])
+		else if (keyboard[13]==1)
 		{
 			v[X] = 13;
 		}
-		else if (keyboard[14])
+		else if (keyboard[14]== 1)
 		{
 			v[X] = 14;
 		}
-		else if (keyboard[15])
+		else if (keyboard[15] == 1)
 		{
 			v[X] = 15;
 		}
@@ -176,6 +176,7 @@ int main (int argc,char ** argv)
 
 	void draw()
 	{
+
 		void *pixels;
 		int pitch;
 		SDL_Rect r;
@@ -187,6 +188,7 @@ int main (int argc,char ** argv)
 
 		if (drawflag)
 		{
+
 			SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
 			SDL_RenderClear(renderer);
 			SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
@@ -203,11 +205,12 @@ int main (int argc,char ** argv)
 				}
 
 			}
-			drawflag = false;
-			SDL_RenderPresent(renderer);	
+			SDL_RenderPresent(renderer);
+						
 
 		}
 
+drawflag = false;
 
 	}
 
@@ -315,8 +318,8 @@ int main (int argc,char ** argv)
 				break; 
 
 				case 0x0006:
-				v[0xF] = v[(opcode & 0x0F00) >> 8] & 0x1;
-                v[(opcode & 0x0F00) >> 8] >>= 1;
+				v[0xF] = v[X] & 0x1;
+                v[Y] =v[X] >> 1;
 				         		          		
 
 
@@ -328,7 +331,7 @@ int main (int argc,char ** argv)
 
 				case 0x000E:
 				v[0xF] = v[X] >> 7;
-                v[X] <<= 1;
+                v[Y] = v[X] << 1;
 
 				break; 	
 				default: printf("Opcode error 8xxx -> %x\n",opcode );			
@@ -381,10 +384,10 @@ int main (int argc,char ** argv)
 			switch(kk){
 
 				case 0x009E:
-				if(keyboard[v[X]])PC += 2;
+				if(keyboard[v[X]] != 0)PC += 2;
 				break;						
 				case 0x00A1:
-				if(!keyboard[v[X]])PC+=2;
+				if(!keyboard[v[X]]==0)PC+=2;
 				break;
 
 			}
@@ -398,7 +401,7 @@ int main (int argc,char ** argv)
 				break;
 				case 0x000A:
 
-				kboard(v[X]);
+				kboard(X);
 				break;
 				case 0x0015:
 				delay_timer = v[X];
@@ -647,12 +650,21 @@ int main (int argc,char ** argv)
 				}
 				break;
 			}
-			draw();
+
+			 if (delay_timer > 0)
+        		--delay_timer;
 			execute();
+			draw();
+			
+
+
+
 
 		}
 
-
+		SDL_DestroyTexture(screen);
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
 
 
 		return 0;
