@@ -11,7 +11,7 @@ int main (int argc,char ** argv)
 {
 	if (argc < 2)
 	{
-		printf("Usage: ./chip8 <romFile> \n");
+		printf("Usage: ./chip8 <rom> \n");
 		return 0;
 	}
 	int quit=0;
@@ -28,12 +28,9 @@ int main (int argc,char ** argv)
 	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
-	
+	SDL_RenderClear(renderer);	
 	
 	SDL_Texture * screen;
-    //screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB565, SDL_TEXTUREACCESS_STREAMING, 64, 32);
 	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
 	unsigned char chip8_fontset[80] =
 	{
@@ -65,9 +62,9 @@ int main (int argc,char ** argv)
 	unsigned char gfx[64 * 32];
 
 
-	// Interruptores y registros de hardware
-	unsigned char delay_timer;// Un registro de tiempo que cuenta los 60HZ, cuando llega mas de 0 se pone automaticamente en 0
-	unsigned char sound_timer;// El buzzer del sistema suena en cualquier momento que sound_timer llegue a 0
+	
+	unsigned char delay_timer;
+	unsigned char sound_timer;
 
 	unsigned short stack[16];
 	unsigned short sp;
@@ -93,9 +90,12 @@ int main (int argc,char ** argv)
 		memset(v,0,16);
 		memset(gfx,0,2048);
 		memset(keyboard,0,16);
-		memset(chip8_fontset,0,80);
+		for(int i = 0; i < 80; i++){
+   		 memory[i] = chip8_fontset[i];}
+		
 	}
 
+// Load rom file into memory
 	void loadRom(){
 		FILE * fp = fopen(argv[1],"rb");
 		if(fp == NULL)
@@ -144,6 +144,8 @@ int main (int argc,char ** argv)
 			SDL_RenderPresent(renderer);
 
 
+
+
 		}
 
 		drawflag = false;
@@ -163,6 +165,8 @@ int main (int argc,char ** argv)
 
 		printf("opcode: %x \n", opcode);
 		printf("program counter: %x \n",PC);
+		printf("I: %x \n",I);
+
 
 
 
@@ -191,10 +195,6 @@ int main (int argc,char ** argv)
 			PC = nnn;
 			break;
 
-				//8e
-
-
-
 			case 0x2000:
 			stack[sp] = PC;
 			++sp;
@@ -212,12 +212,15 @@ int main (int argc,char ** argv)
 			case 0x5000:
 			if (v[X] == v[Y]) PC+=2;
 			break;
+			
 			case 0x6000:
 			v[X] = kk;
 			break;
+			
 			case 0x7000:
 			v[X] += kk;
 			break;
+			
 			case 0x8000:
 			switch(n){
 				case 0x0000:
@@ -248,7 +251,7 @@ int main (int argc,char ** argv)
 				break;
 
 				case 0x0005:
-				if (v[(X)  > v[Y] ]) v[0xF] = 1;
+				if (v[X]> v[Y] ) v[0xF] = 1;
 				else v[0xF] = 0;
 				v[X] -= v[Y];
 				break; 
@@ -258,22 +261,21 @@ int main (int argc,char ** argv)
 				v[X] >>= 1;
 				break;
 
-
-
 				case 0x0007:
 				if(v[Y] > v[X]) v[0xF] = 1;
 				else v[0xF] = 0;
-				v[X] -= v[Y];
+				v[X] = v[Y] - v[X];
 				break;
 
 				case 0x000E:
 				v[0xF] = v[X] >> 7;
-				v[Y] = v[X] << 1;
-
+				/*v[Y] =*/  v[X] <<= 1;
 				break; 	
+				
 				default: printf("Opcode error 8xxx -> %x\n",opcode );			
 			}
 			break;
+			
 			case 0x9000:
 			if(v[X] != v[Y]) PC += 2;
 			break;
@@ -415,7 +417,7 @@ int main (int argc,char ** argv)
 				break;
 
 				case 0x0029:
-				I = v[X] * 0x5;
+				I = v[X] * 5;
 				break;
 
 				case 0x0033:
@@ -566,7 +568,6 @@ int main (int argc,char ** argv)
 					break;
 				}
 
-
 				case SDL_KEYUP:
 
 				switch (event.key.keysym.sym)
@@ -654,22 +655,14 @@ int main (int argc,char ** argv)
 				}
 				break;
 			}
-
 			if (delay_timer > 0)
 				--delay_timer;
 			execute();
 			draw();
-			
-
-
-
-
-		}
-
+			}
 		SDL_DestroyTexture(screen);
 		SDL_DestroyRenderer(renderer);
 		SDL_DestroyWindow(window);
-
-
+		SDL_Quit();
 		return 0;
-	}
+}
