@@ -24,7 +24,7 @@ int main (int argc,char ** argv)
 	}
 	SDL_Event event;
 
-	SDL_Window * window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
+	SDL_Window * window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
 	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -32,6 +32,15 @@ int main (int argc,char ** argv)
 	
 	SDL_Texture * screen;
 	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
+	
+
+	unsigned short opcode; 
+	unsigned char  memory[(MEMSIZE)];
+	unsigned char v[16];
+	unsigned short I; 
+	unsigned short PC;
+	
+	unsigned char gfx[64 * 32];
 	unsigned char chip8_fontset[80] =
 	{
 		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -52,17 +61,6 @@ int main (int argc,char ** argv)
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 	
-
-	unsigned short opcode; 
-	unsigned char  memory[(MEMSIZE)];
-	unsigned char v[16];
-
-	unsigned short I; 
-	unsigned short PC;
-	unsigned char gfx[64 * 32];
-
-
-	
 	unsigned char delay_timer;
 	unsigned char sound_timer;
 
@@ -73,10 +71,6 @@ int main (int argc,char ** argv)
 	
 	bool drawflag;
 
-	//void kboard(uint8_t X){
-
-	
-	//}	
 //Initialize everything
 	void initChip8(){	
 		delay_timer= 0;
@@ -90,8 +84,7 @@ int main (int argc,char ** argv)
 		memset(v,0,16);
 		memset(gfx,0,2048);
 		memset(keyboard,0,16);
-		//for(int i = 0; i < 80; i++){
-		//	memory[i] = chip8_fontset[i];}
+		// Load fonts
 		memcpy(memory,chip8_fontset,80*sizeof(char));
 
 	}
@@ -122,7 +115,7 @@ int main (int argc,char ** argv)
 		r.y = 0;
 		r.w = 1;
 		r.h = 1;
-
+		
 		if (drawflag)
 		{
 
@@ -147,6 +140,7 @@ int main (int argc,char ** argv)
 		drawflag = false;
 
 	}
+
 // Emulate cycle
 	void execute(){
 
@@ -303,7 +297,6 @@ int main (int argc,char ** argv)
 				}
 
 			}
-
 			drawflag = true;
 			break;
 
@@ -445,9 +438,11 @@ int main (int argc,char ** argv)
 
 		initChip8();
 		loadRom();	
+		int speed=5;
 		while(!quit){
-			SDL_Delay(5);
-			SDL_PollEvent(&event);
+			
+			printf("Speed: %d \n",speed);
+			while(SDL_PollEvent(&event)){
 			switch(event.type)
 			{
 				case SDL_QUIT:
@@ -460,6 +455,8 @@ int main (int argc,char ** argv)
 				{
 					case SDLK_ESCAPE:quit = 1;break;
 					case SDLK_F1:initChip8();loadRom();break;
+					case SDLK_F2:speed -= 1;break;
+					case SDLK_F3:speed += 1;break;
 					case SDLK_x:keyboard[0] = 1;break;
 					case SDLK_1:keyboard[1] = 1;break;
 					case SDLK_2:keyboard[2] = 1;break;
@@ -502,10 +499,19 @@ int main (int argc,char ** argv)
 				}
 				break;
 			}
-
+			break;
+		}
+			if(speed<0){
+				
+				speed = 0;
+			}
+			else{
+				SDL_Delay(speed);
+			}
 			if (delay_timer > 0)
 				--delay_timer;
 			execute();
+			
 			draw();
 		}
 		SDL_DestroyTexture(screen);
