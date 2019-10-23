@@ -122,8 +122,8 @@ int main (int argc,char ** argv)
 		r.w = 1;
 		r.h = 1;
 
-		if (drawflag)
-		{
+		//if (drawflag)
+		//{
 
 			SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
 			SDL_RenderClear(renderer);
@@ -145,10 +145,10 @@ int main (int argc,char ** argv)
 
 
 
+//
+//		}
 
-		}
-
-		drawflag = false;
+		//drawflag = false;
 
 	}
 
@@ -218,7 +218,7 @@ int main (int argc,char ** argv)
 			break;
 			
 			case 0x7000:
-			v[X] += kk;
+			v[(X)] += kk;
 			break;
 			
 			case 0x8000:
@@ -313,7 +313,7 @@ int main (int argc,char ** argv)
 
 			}
 
-			drawflag = true;
+			//drawflag = true;
 
 
 
@@ -487,34 +487,34 @@ int main (int argc,char ** argv)
 					break;
 
 					case SDLK_1:
-					{
+					
 						keyboard[1] = 1;
 						printf("1 press");
-					} break;
+					 break;
 
 					case SDLK_2:
-					{
+					
 						keyboard[2] = 1;
 						printf("2 press");
-					} break;
+					 break;
 
 					case SDLK_3:
-					{
+					
 						keyboard[3] = 1;
 						printf("3 press");
-					} break;
+					 break;
 
 					case SDLK_q:
-					{
+					
 						keyboard[4] = 1;
 						printf("Q press");
-					} break;
+					 break;
 
 					case SDLK_w:
-					{
+					
 						keyboard[5] = 1;
 						printf("W press");
-					} break;
+					 break;
 
 					case SDLK_e:
 					{
@@ -565,9 +565,9 @@ int main (int argc,char ** argv)
 					{
 						keyboard[0xF] = 1;
 					} break;
-					break;
+					
 				}
-
+				break;
 				case SDL_KEYUP:
 
 				switch (event.key.keysym.sym)
