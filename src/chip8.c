@@ -90,9 +90,10 @@ int main (int argc,char ** argv)
 		memset(v,0,16);
 		memset(gfx,0,2048);
 		memset(keyboard,0,16);
-		for(int i = 0; i < 80; i++){
-   		 memory[i] = chip8_fontset[i];}
-		
+		//for(int i = 0; i < 80; i++){
+		//	memory[i] = chip8_fontset[i];}
+		memcpy(memory,chip8_fontset,80*sizeof(char));
+
 	}
 
 // Load rom file into memory
@@ -122,8 +123,8 @@ int main (int argc,char ** argv)
 		r.w = 1;
 		r.h = 1;
 
-		//if (drawflag)
-		//{
+		if (drawflag)
+		{
 
 			SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
 			SDL_RenderClear(renderer);
@@ -145,10 +146,10 @@ int main (int argc,char ** argv)
 
 
 
-//
-//		}
 
-		//drawflag = false;
+		}
+
+		drawflag = false;
 
 	}
 
@@ -178,23 +179,27 @@ int main (int argc,char ** argv)
 			case 0x0000:
 
 			switch(opcode & 0x00FF){
-
+				// 00E0 
 				case 0x00E0:
 				memset(gfx, 0, 2048);
 				drawflag = true;
-					//PC +=2;
 				break;
+
+				//00E0 
 				case 0x00EE:
 				--sp;
 				PC = stack[sp];
 				break;
+
 				default: printf("Opcode error 0xxx -> %x\n",opcode ); 
 			}break;
+
+			//1nnn 
 			case 0x1000:
 
 			PC = nnn;
 			break;
-
+			//2nnn 
 			case 0x2000:
 			stack[sp] = PC;
 			++sp;
@@ -212,15 +217,15 @@ int main (int argc,char ** argv)
 			case 0x5000:
 			if (v[X] == v[Y]) PC+=2;
 			break;
-			
+
 			case 0x6000:
 			v[X] = kk;
 			break;
-			
+
 			case 0x7000:
 			v[(X)] += kk;
 			break;
-			
+
 			case 0x8000:
 			switch(n){
 				case 0x0000:
@@ -269,13 +274,13 @@ int main (int argc,char ** argv)
 
 				case 0x000E:
 				v[0xF] = v[X] >> 7;
-				/*v[Y] =*/  v[X] <<= 1;
+				v[X] <<= 1;
 				break; 	
-				
+
 				default: printf("Opcode error 8xxx -> %x\n",opcode );			
 			}
 			break;
-			
+
 			case 0x9000:
 			if(v[X] != v[Y]) PC += 2;
 			break;
@@ -313,7 +318,7 @@ int main (int argc,char ** argv)
 
 			}
 
-			//drawflag = true;
+			drawflag = true;
 
 
 
@@ -404,7 +409,7 @@ int main (int argc,char ** argv)
 				{
 					PC -= 2;
 				}
-				//kboard(X);
+				
 				break;
 				case 0x0015:
 				delay_timer = v[X];
@@ -420,16 +425,15 @@ int main (int argc,char ** argv)
 				I = v[X] * 5;
 				break;
 
-				case 0x0033:
-				memory[I + 2] = v[X] % 10;
-				v[X] /= 10;
-
-					// Tens-place
-				memory[I + 1] = v[X] % 10;
-				v[X] /= 10;
-
-					// Hundreds-place
-				memory[I] = v[X] % 10;
+				case 0x0033:{
+					int vX;
+					vX = v[X];
+					memory[I]     = (vX - (vX % 100)) / 100;
+					vX -= memory[I] * 100;
+					memory[I + 1] = (vX - (vX % 10)) / 10;
+					vX -= memory[I+1] * 10;
+					memory[I + 2] = vX;
+				}
 				break;
 
 
@@ -473,7 +477,7 @@ int main (int argc,char ** argv)
 				switch (event.key.keysym.sym)
 				{
 					case SDLK_ESCAPE:
-					
+
 					quit = 1;
 					break;
 					case SDLK_F1:
@@ -481,40 +485,40 @@ int main (int argc,char ** argv)
 					loadRom();
 					break;
 					case SDLK_x:
-					
+
 					keyboard[0] = 1;
 					printf("X press");
 					break;
 
 					case SDLK_1:
-					
-						keyboard[1] = 1;
-						printf("1 press");
-					 break;
+
+					keyboard[1] = 1;
+					printf("1 press");
+					break;
 
 					case SDLK_2:
-					
-						keyboard[2] = 1;
-						printf("2 press");
-					 break;
+
+					keyboard[2] = 1;
+					printf("2 press");
+					break;
 
 					case SDLK_3:
-					
-						keyboard[3] = 1;
-						printf("3 press");
-					 break;
+
+					keyboard[3] = 1;
+					printf("3 press");
+					break;
 
 					case SDLK_q:
-					
-						keyboard[4] = 1;
-						printf("Q press");
-					 break;
+
+					keyboard[4] = 1;
+					printf("Q press");
+					break;
 
 					case SDLK_w:
-					
-						keyboard[5] = 1;
-						printf("W press");
-					 break;
+
+					keyboard[5] = 1;
+					printf("W press");
+					break;
 
 					case SDLK_e:
 					{
@@ -565,7 +569,7 @@ int main (int argc,char ** argv)
 					{
 						keyboard[0xF] = 1;
 					} break;
-					
+
 				}
 				break;
 				case SDL_KEYUP:
@@ -659,10 +663,10 @@ int main (int argc,char ** argv)
 				--delay_timer;
 			execute();
 			draw();
-			}
+		}
 		SDL_DestroyTexture(screen);
 		SDL_DestroyRenderer(renderer);
 		SDL_DestroyWindow(window);
 		SDL_Quit();
 		return 0;
-}
+	}
