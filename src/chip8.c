@@ -154,7 +154,7 @@ int main (int argc,char ** argv)
 		printf("opcode: %x \n", opcode);
 		printf("program counter: %x \n",PC);
 		printf("I: %x \n",I);
-
+	
 		switch (opcode & 0xF000){
 			case 0x0000:
 
@@ -307,7 +307,7 @@ int main (int argc,char ** argv)
 				if(keyboard[v[X]] != 0)PC += 2;
 				break;						
 				case 0x00A1:
-				if(!keyboard[v[X]]==0)PC+=2;
+				if(keyboard[v[X]]==0)PC+=2;
 				break;
 
 			}
