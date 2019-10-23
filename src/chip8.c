@@ -110,7 +110,7 @@ int main (int argc,char ** argv)
 
 		fread(memory+0x200,sizeof(uint16_t),size,fp);
 	}
-
+// Draw function
 	void draw()
 	{
 
@@ -143,16 +143,11 @@ int main (int argc,char ** argv)
 
 			}
 			SDL_RenderPresent(renderer);
-
-
-
-
 		}
-
 		drawflag = false;
 
 	}
-
+// Emulate cycle
 	void execute(){
 
 		opcode = memory[PC] << 8 | memory[PC + 1];
@@ -162,18 +157,9 @@ int main (int argc,char ** argv)
 		uint16_t nnn = (opcode & 0x0FFF);
 		uint8_t kk = (opcode & 0x00FF);
 		uint8_t n = (opcode & 0x000F);
-
-
 		printf("opcode: %x \n", opcode);
 		printf("program counter: %x \n",PC);
 		printf("I: %x \n",I);
-
-
-
-
-
-
-
 
 		switch (opcode & 0xF000){
 			case 0x0000:
@@ -196,9 +182,9 @@ int main (int argc,char ** argv)
 
 			//1nnn 
 			case 0x1000:
-
 			PC = nnn;
 			break;
+			
 			//2nnn 
 			case 0x2000:
 			stack[sp] = PC;
@@ -319,9 +305,6 @@ int main (int argc,char ** argv)
 			}
 
 			drawflag = true;
-
-
-
 			break;
 
 			case 0xE000:
@@ -453,11 +436,10 @@ int main (int argc,char ** argv)
 
 			}
 			break;	
-
-
 			default:
+			
 			printf("Opcode error -> %x \n",opcode);
-			PC += 2;
+			
 
 		}}	
 
@@ -476,189 +458,51 @@ int main (int argc,char ** argv)
 
 				switch (event.key.keysym.sym)
 				{
-					case SDLK_ESCAPE:
-
-					quit = 1;
-					break;
-					case SDLK_F1:
-					initChip8();
-					loadRom();
-					break;
-					case SDLK_x:
-
-					keyboard[0] = 1;
-					printf("X press");
-					break;
-
-					case SDLK_1:
-
-					keyboard[1] = 1;
-					printf("1 press");
-					break;
-
-					case SDLK_2:
-
-					keyboard[2] = 1;
-					printf("2 press");
-					break;
-
-					case SDLK_3:
-
-					keyboard[3] = 1;
-					printf("3 press");
-					break;
-
-					case SDLK_q:
-
-					keyboard[4] = 1;
-					printf("Q press");
-					break;
-
-					case SDLK_w:
-
-					keyboard[5] = 1;
-					printf("W press");
-					break;
-
-					case SDLK_e:
-					{
-						keyboard[6] = 1;
-					} break;
-
-					case SDLK_a:
-					{
-						keyboard[7] = 1;
-					} break;
-
-					case SDLK_s:
-					{
-						keyboard[8] = 1;
-					} break;
-
-					case SDLK_d:
-					{
-						keyboard[9] = 1;
-					} break;
-
-					case SDLK_z:
-					{
-						keyboard[0xA] = 1;
-					} break;
-
-					case SDLK_c:
-					{
-						keyboard[0xB] = 1;
-					} break;
-
-					case SDLK_4:
-					{
-						keyboard[0xC] = 1;
-					} break;
-
-					case SDLK_r:
-					{
-						keyboard[0xD] = 1;
-					} break;
-
-					case SDLK_f:
-					{
-						keyboard[0xE] = 1;
-					} break;
-
-					case SDLK_v:
-					{
-						keyboard[0xF] = 1;
-					} break;
-
+					case SDLK_ESCAPE:quit = 1;break;
+					case SDLK_F1:initChip8();loadRom();break;
+					case SDLK_x:keyboard[0] = 1;break;
+					case SDLK_1:keyboard[1] = 1;break;
+					case SDLK_2:keyboard[2] = 1;break;
+					case SDLK_3:keyboard[3] = 1;break;
+					case SDLK_q:keyboard[4] = 1;break;
+					case SDLK_w:keyboard[5] = 1;break;
+					case SDLK_e:keyboard[6] = 1;break;
+					case SDLK_a:keyboard[7] = 1;break;
+					case SDLK_s:keyboard[8] = 1;break;
+					case SDLK_d:keyboard[9] = 1;break;
+					case SDLK_z:keyboard[0xA] = 1;break;
+					case SDLK_c:keyboard[0xB] = 1;break;
+					case SDLK_4:keyboard[0xC] = 1;break;
+					case SDLK_r:keyboard[0xD] = 1;break;
+					case SDLK_f:keyboard[0xE] = 1;break;
+					case SDLK_v:keyboard[0xF] = 1;break;
 				}
 				break;
+				
 				case SDL_KEYUP:
-
+				
 				switch (event.key.keysym.sym)
 				{
-					case SDLK_x:
-					{
-						keyboard[0] = 0;
-
-					} break;
-
-					case SDLK_1:
-					{
-						keyboard[1] = 0;
-					} break;
-
-					case SDLK_2:
-					{
-						keyboard[2] = 0;
-					} break;
-
-					case SDLK_3:
-					{
-						keyboard[3] = 0;
-					} break;
-
-					case SDLK_q:
-					{
-						keyboard[4] = 0;
-					} break;
-
-					case SDLK_w:
-					{
-						keyboard[5] = 0;
-					} break;
-
-					case SDLK_e:
-					{
-						keyboard[6] = 0;
-					} break;
-
-					case SDLK_a:
-					{
-						keyboard[7] = 0;
-					} break;
-
-					case SDLK_s:
-					{
-						keyboard[8] = 0;
-					} break;
-
-					case SDLK_d:
-					{
-						keyboard[9] = 0;
-					} break;
-
-					case SDLK_z:
-					{
-						keyboard[0xA] = 0;
-					} break;
-
-					case SDLK_c:
-					{
-						keyboard[0xB] = 0;
-					} break;
-
-					case SDLK_4:
-					{
-						keyboard[0xC] = 0;
-					} break;
-
-					case SDLK_r:
-					{
-						keyboard[0xD] = 0;
-					} break;
-
-					case SDLK_f:
-					{
-						keyboard[0xE] = 0;
-					} break;
-
-					case SDLK_v:
-					{
-						keyboard[0xF] = 0;
-					} break;
+					case SDLK_x:keyboard[0] = 0;break;
+					case SDLK_1:keyboard[1] = 0;break;
+					case SDLK_2:keyboard[2] = 0;break;
+					case SDLK_3:keyboard[3] = 0;break;
+					case SDLK_q:keyboard[4] = 0;break;
+					case SDLK_w:keyboard[5] = 0;break;
+					case SDLK_e:keyboard[6] = 0;break;
+					case SDLK_a: keyboard[7] = 0;break;
+					case SDLK_s:keyboard[8] = 0;break;
+					case SDLK_d:keyboard[9] = 0;break;
+					case SDLK_z:keyboard[0xA] = 0;break;
+					case SDLK_c:keyboard[0xB] = 0;break;
+					case SDLK_4:keyboard[0xC] = 0;break;
+					case SDLK_r:keyboard[0xD] = 0;break;
+					case SDLK_f:keyboard[0xE] = 0;break;
+					case SDLK_v:keyboard[0xF] = 0;break;
 				}
 				break;
 			}
+
 			if (delay_timer > 0)
 				--delay_timer;
 			execute();
