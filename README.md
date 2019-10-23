@@ -10,8 +10,12 @@ make
 
 ## Usage
 ```bash
-./chip8 <rom>
+./chip8 <ROM>
 ```
+
+F1 - Reload ROM
+ESC - Exit
+
 
 ## Documentation used:
 http://mattmik.com/files/chip8/mastering/chip8.html
