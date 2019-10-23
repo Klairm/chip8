@@ -5,6 +5,7 @@ A simple Chip8 emulator written in C for educational purposes
 
 ## Building
 ```bash
+cd chip8/
 make
 ```
 
