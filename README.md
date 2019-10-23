@@ -15,6 +15,10 @@ make
 
 F1 - Reload ROM
 
+F2 - Increase speed 
+
+F3 - Decrease speed
+
 ESC - Exit
 
 
