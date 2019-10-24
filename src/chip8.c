@@ -20,7 +20,9 @@ int main (int argc,char ** argv)
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
 
 		fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
-		return 1;
+		
+		//Ensures Exit if failed
+		exit(1);
 	}
 	SDL_Event event;
 
@@ -172,7 +174,7 @@ int main (int argc,char ** argv)
 				break;
 
 				default: printf("Opcode error 0xxx -> %x\n",opcode ); 
-			}break;
+			}
 
 			//1nnn 
 			case 0x1000:
