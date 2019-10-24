@@ -1,3 +1,7 @@
+#pragma once
+
+#include <stdint.h>
+
 unsigned short opcode; 
 	unsigned char  memory[(MEMSIZE)];
 	unsigned char v[16];
