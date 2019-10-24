@@ -1,161 +1,106 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<stdint.h>
-#include<stdbool.h>
-#include<SDL2/SDL.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <SDL2/SDL.h>
+#include "chip8.h"
 
-
-#define MEMSIZE 4096
-
-int main (int argc,char ** argv)
-{
-	if (argc < 2)
-	{
-		printf("Usage: ./chip8 <rom> \n");
-		return 0;
-	}
-	int quit=0;
-
-	
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0){
-
-		fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
-		return 1;
-	}
-	SDL_Event event;
-
-	SDL_Window * window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
-	SDL_Renderer * renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
-	SDL_RenderSetLogicalSize(renderer, 64, 32);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);	
-	
-	SDL_Texture * screen;
-	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
-	
-
-	unsigned short opcode; 
-	unsigned char  memory[(MEMSIZE)];
-	unsigned char v[16];
-	unsigned short I; 
-	unsigned short PC;
-	
-	unsigned char gfx[64 * 32];
-	unsigned char chip8_fontset[80] =
-	{
-		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-		0x20, 0x60, 0x20, 0x20, 0x70, // 1
-		0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-		0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-		0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-		0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-		0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-		0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-		0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-		0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-		0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-		0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-		0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-		0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-		0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-	};
-	
-	unsigned char delay_timer;
-	unsigned char sound_timer;
-
-	unsigned short stack[16];
-	unsigned short sp;
-
-	unsigned char keyboard[16];	
-	
-	bool drawflag;
+SDL_Renderer * renderer;
+SDL_Window * window;
+SDL_Texture * screen;
 
 //Initialize everything
-	void initChip8(){	
-		delay_timer= 0;
-		sound_timer= 0;
-		opcode = 0;
-		PC = 0x200;
-		I = 0;
-		sp = 0;
-		memset(stack,0,16);
-		memset(memory,0,4096);
-		memset(v,0,16);
-		memset(gfx,0,2048);
-		memset(keyboard,0,16);
-		// Load fonts
-		memcpy(memory,chip8_fontset,80*sizeof(char));
+void initChip8()
+{	
+	delay_timer= 0;
+	sound_timer= 0;
+	opcode = 0;
+	PC = 0x200;
+	I = 0;
+	sp = 0;
+	memset(stack,0,16);
+	memset(memory,0,4096);
+	memset(v,0,16);
+	memset(gfx,0,2048);
+	memset(keyboard,0,16);
+	// Load fonts
+	memcpy(memory,chip8_fontset,80*sizeof(int8_t));
+}
 
-	}
-
-// Load rom file into memory
-	void loadRom(){
-		FILE * fp = fopen(argv[1],"rb");
-		if(fp == NULL)
-		{
-			fprintf(stderr,"Can't open the file rom \n");
-			exit(1);
-		}	
-		fseek(fp, 0, SEEK_END);
-		int size = ftell(fp); 
-		fseek(fp, 0 ,SEEK_SET);
-
-		fread(memory+0x200,sizeof(uint16_t),size,fp);
-	}
-// Draw function
-	void draw()
-	{
-
-		void *pixels;
-		int pitch;
-		SDL_Rect r;
-		int x, y;
-		r.x = 0;
-		r.y = 0;
-		r.w = 1;
-		r.h = 1;
-		
-		if (drawflag)
-		{
-
-			SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
-			SDL_RenderClear(renderer);
-			SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
-			for(x=0;x<64;x++)
-			{
-				for(y=0;y<32;y++)
-				{
-					if (gfx[(x) + ((y) * 64)] == 1)
-					{
-						r.x = x;
-						r.y = y;
-						SDL_RenderFillRect( renderer, &r );
-					}
-				}
-
-			}
-			SDL_RenderPresent(renderer);
-		}
-		drawflag = false;
-
-	}
-
-// Emulate cycle
-	void execute(){
-
-		opcode = memory[PC] << 8 | memory[PC + 1];
-		PC +=2;
-		uint8_t X = (opcode & 0x0F00) >> 8;
-		uint8_t Y = (opcode & 0x00F0) >> 4;
-		uint16_t nnn = (opcode & 0x0FFF);
-		uint8_t kk = (opcode & 0x00FF);
-		uint8_t n = (opcode & 0x000F);
-		printf("opcode: %x \n", opcode);
-		printf("program counter: %x \n",PC);
-		printf("I: %x \n",I);
+	// Load rom file into memory
+uint32_t loadRom(char* file)
+{
+	FILE * fp = fopen(file,"rb");
 	
-		switch (opcode & 0xF000){
+	if(fp == NULL)
+	{
+		fprintf(stderr,"Can't open the file rom \n");
+		return 0;
+	}	
+	
+	fseek(fp, 0, SEEK_END);
+	int size = ftell(fp); 
+	fseek(fp, 0 ,SEEK_SET);
+
+	fread(memory+0x200,sizeof(uint16_t),size,fp);
+	
+	return 1;
+}
+
+// Draw function
+void draw()
+{
+	void *pixels;
+	int pitch;
+	SDL_Rect r;
+	int x, y;
+	r.x = 0;
+	r.y = 0;
+	r.w = 1;
+	r.h = 1;
+		
+	if (drawflag)
+	{
+		SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
+		SDL_RenderClear(renderer);
+		SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
+		for(x=0;x<64;x++)
+		{
+			for(y=0;y<32;y++)
+			{
+				if (gfx[(x) + ((y) * 64)] == 1)
+				{
+					r.x = x;
+					r.y = y;
+					SDL_RenderFillRect( renderer, &r );
+				}
+			}
+		}
+		SDL_RenderPresent(renderer);
+	}
+	drawflag = false;
+}
+
+	// Emulate cycle
+void execute()
+{
+	uint8_t X, Y, kk, n;
+	uint16_t nnn;
+	uint32_t i, key_pressed;
+	
+	opcode = memory[PC] << 8 | memory[PC + 1];
+	PC +=2;
+	X = (opcode & 0x0F00) >> 8;
+	Y = (opcode & 0x00F0) >> 4;
+	nnn = (opcode & 0x0FFF);
+	kk = (opcode & 0x00FF);
+	n = (opcode & 0x000F);
+	printf("opcode: %x \n", opcode);
+	printf("program counter: %x \n",PC);
+	printf("I: %x \n",I);
+	
+	switch (opcode & 0xF000)
+	{
 			case 0x0000:
 
 			switch(opcode & 0x00FF){
@@ -278,9 +223,9 @@ int main (int argc,char ** argv)
 			break;
 
 			case 0xD000:;
-			unsigned short x = v[X];
-			unsigned short y = v[Y];
-			unsigned short height = n;
+			uint16_t x = v[X];
+			uint16_t y = v[Y];
+			uint16_t height = n;
 			uint8_t pixel;
 
 			v[0xF] = 0;
@@ -320,68 +265,17 @@ int main (int argc,char ** argv)
 				v[X] = delay_timer;
 				break;
 				case 0x000A:
-				if(keyboard[0]){
-					v[X] = 0;
-				}
-				else if(keyboard[1]){
-					v[X] = 1;
-				}
-				else if(keyboard[2]){
-					v[X] = 2;
-				}
-				else if (keyboard[3])
+				key_pressed = 0;
+				for(i=0;i<16;i++)
 				{
-					v[X] = 3;
+					if (keyboard[i])
+					{
+						key_pressed = 1;
+						v[X] = i;
+					}
 				}
-				else if (keyboard[4])
-				{
-					v[X] = 4;
-				}
-				else if (keyboard[5])
-				{
-					v[X] = 5;
-				}
-				else if (keyboard[6])
-				{
-					v[X] = 6;
-				}
-				else if (keyboard[7])
-				{
-					v[X] = 7;
-				}
-				else if (keyboard[8])
-				{
-					v[X] = 8;
-				}
-				else if (keyboard[9])
-				{
-					v[X] = 9;
-				}
-				else if (keyboard[10])
-				{
-					v[X] = 10;
-				}
-				else if (keyboard[11])
-				{
-					v[X] = 11;
-				}
-				else if (keyboard[12])
-				{
-					v[X] = 12;
-				}
-				else if (keyboard[13])
-				{
-					v[X] = 13;
-				}
-				else if (keyboard[14])
-				{
-					v[X] = 14;
-				}
-				else if (keyboard[15])
-				{
-					v[X] = 15;
-				}
-				else
+	
+				if (key_pressed == 0)
 				{
 					PC -= 2;
 				}
@@ -432,17 +326,57 @@ int main (int argc,char ** argv)
 			default:
 			
 			printf("Opcode error -> %x \n",opcode);
-			
+			break;
+			}
+}	
 
-		}}	
+void CleanUp_SDL()
+{
+	SDL_DestroyTexture(screen);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+}
 
-		initChip8();
-		loadRom();	
-		int speed=5;
-		while(!quit){
-			
-			printf("Speed: %d \n",speed);
-			while(SDL_PollEvent(&event)){
+int main (int argc, char ** argv)
+{
+	uint32_t quit=0;
+	
+	if (argc < 2)
+	{
+		printf("Usage: ./chip8 <rom> \n");
+		return 0;
+	}
+
+	
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+	{
+		fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
+		return 0;
+	}
+	SDL_Event event;
+
+	window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
+	renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+	SDL_RenderSetLogicalSize(renderer, 64, 32);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);	
+
+	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
+
+	initChip8();
+	if (loadRom(argv[1]) == 0)
+	{
+		CleanUp_SDL();
+		return 0;
+	}
+	int32_t speed=5;
+	
+	while(!quit)
+	{
+		printf("Speed: %d \n",speed);
+		while(SDL_PollEvent(&event))
+		{
 				switch(event.type)
 				{
 					case SDL_QUIT:
@@ -454,7 +388,14 @@ int main (int argc,char ** argv)
 					switch (event.key.keysym.sym)
 					{
 						case SDLK_ESCAPE:quit = 1;break;
-						case SDLK_F1:initChip8();loadRom();break;
+						case SDLK_F1:
+							initChip8();
+							if (loadRom(argv[1]) == 0)
+							{
+								CleanUp_SDL();
+								return 0;
+							}
+						break;
 						case SDLK_F2:speed -= 1;break;
 						case SDLK_F3:speed += 1;break;
 						case SDLK_x:keyboard[0] = 1;break;
@@ -501,22 +442,23 @@ int main (int argc,char ** argv)
 				}
 				break;
 			}
-			if(speed<0){
-				
-				speed = 0;
-			}
-			else{
-				SDL_Delay(speed);
-			}
-			if (delay_timer > 0)
-				--delay_timer;
-			execute();
 			
-			draw();
+		if(speed<0)
+		{
+			speed = 0;
 		}
-		SDL_DestroyTexture(screen);
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
-		SDL_Quit();
-		return 0;
+		else
+		{
+			SDL_Delay(speed);
+		}
+		if (delay_timer > 0)
+			--delay_timer;
+			
+		execute();
+		draw();
 	}
+	
+	CleanUp_SDL();
+	
+	return 0;
+}
