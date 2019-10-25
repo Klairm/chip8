@@ -1,7 +1,7 @@
 #ifndef CHIP_8
 #define CHIP_8
 
-#pragma once
+
 
 #include <stdint.h>
 
