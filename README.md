@@ -31,6 +31,8 @@ ESC - Exit
 |  A	0	B	F       |  Z X C V       |
 
 
+## TODO:
+Implement SCHIP8 instructions
 
 
 ## Documentation used:
