@@ -6,6 +6,12 @@ A simple Chip8 emulator written in C for educational purposes
 ## Building
 ```bash
 cd chip8/
+chmod +x install.sh 
+./install.sh
+```
+Note: You can manually build the program just using: 
+```bash
+cd chip8/
 make
 ```
 
