@@ -4,10 +4,12 @@ echo "[1] Arch, [2] Debian-based, [3] Fedora"
 read op
 
 if [ $op == 1 ]; then
-	echo "Need testing"
-	# TO DO: Installing sdl2 dev libraries for arch based systems
+	echo -e "\e[32mInstalling SDL2libraries\e[39m"
+	sudo pacman -S sdl2
+	echo -e "\e[32mBuilding chip8 interpreter...\e[39m"
+	make
 elif [ $op == 2 ]; then
-	echo -e "\e[32mInstalling SDL Dev libraries\e[39m"
+	echo -e "\e[32mInstalling SDL2 Dev libraries\e[39m"
 	sudo apt install libsdl2-dev
 	echo -e "\e[32mBuilding chip8 interpreter...\e[39m"
 	make
