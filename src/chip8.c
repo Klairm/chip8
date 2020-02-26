@@ -357,7 +357,7 @@ int main (int argc, char ** argv)
 	SDL_Event event;
 
 	window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
-	renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+	renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);	
