@@ -1,7 +1,7 @@
 # chip8
-Chip8 emulator in C
+Chip8 interpreter in C
 
-A simple Chip8 emulator written in C for educational purposes
+A simple Chip8 interpreter written in C for educational purposes
 
 ## Building
 ```bash
