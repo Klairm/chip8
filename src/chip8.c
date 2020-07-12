@@ -5,9 +5,141 @@
 #include <SDL2/SDL.h>
 #include "chip8.h"
 
+void initChip8();
+void draw();
+void execute();
+void CleanUp_SDL();
+uint32_t loadRom(char* file);
+
 SDL_Renderer * renderer;
 SDL_Window * window;
 SDL_Texture * screen;
+
+int main (int argc, char ** argv)
+{
+	uint32_t quit=0;
+	
+	if (argc < 2)
+	{
+		printf("Usage: ./chip8 <rom> \n");
+		return 0;
+	}
+
+	
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+	{
+		fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
+		return 0;
+	}
+	SDL_Event event;
+
+	window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
+	renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	SDL_RenderSetLogicalSize(renderer, 64, 32);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);	
+
+	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
+
+	initChip8();
+	if (loadRom(argv[1]) == 0)
+	{
+		CleanUp_SDL();
+		return 0;
+	}
+	int32_t speed=5;
+	
+	while(!quit)
+	{
+		printf("Speed: %d \n",speed);
+		while(SDL_PollEvent(&event))
+		{
+				switch(event.type)
+				{
+					case SDL_QUIT:
+					quit = 1;
+					break;
+
+					case SDL_KEYDOWN:
+
+					switch (event.key.keysym.sym)
+					{
+						case SDLK_ESCAPE:quit = 1;break;
+						case SDLK_F1:
+							initChip8();
+							if (loadRom(argv[1]) == 0)
+							{
+								CleanUp_SDL();
+								return 0;
+							}
+						break;
+						case SDLK_F2:speed -= 1;break;
+						case SDLK_F3:speed += 1;break;
+						case SDLK_x:keyboard[0] = 1;break;
+						case SDLK_1:keyboard[1] = 1;break;
+						case SDLK_2:keyboard[2] = 1;break;
+						case SDLK_3:keyboard[3] = 1;break;
+						case SDLK_q:keyboard[4] = 1;break;
+						case SDLK_w:keyboard[5] = 1;break;
+						case SDLK_e:keyboard[6] = 1;break;
+						case SDLK_a:keyboard[7] = 1;break;
+						case SDLK_s:keyboard[8] = 1;break;
+						case SDLK_d:keyboard[9] = 1;break;
+						case SDLK_z:keyboard[0xA] = 1;break;
+						case SDLK_c:keyboard[0xB] = 1;break;
+						case SDLK_4:keyboard[0xC] = 1;break;
+						case SDLK_r:keyboard[0xD] = 1;break;
+						case SDLK_f:keyboard[0xE] = 1;break;
+						case SDLK_v:keyboard[0xF] = 1;break;
+					}
+					break;
+					
+					case SDL_KEYUP:
+					
+					switch (event.key.keysym.sym)
+					{
+						case SDLK_x:keyboard[0] = 0;break;
+						case SDLK_1:keyboard[1] = 0;break;
+						case SDLK_2:keyboard[2] = 0;break;
+						case SDLK_3:keyboard[3] = 0;break;
+						case SDLK_q:keyboard[4] = 0;break;
+						case SDLK_w:keyboard[5] = 0;break;
+						case SDLK_e:keyboard[6] = 0;break;
+						case SDLK_a: keyboard[7] = 0;break;
+						case SDLK_s:keyboard[8] = 0;break;
+						case SDLK_d:keyboard[9] = 0;break;
+						case SDLK_z:keyboard[0xA] = 0;break;
+						case SDLK_c:keyboard[0xB] = 0;break;
+						case SDLK_4:keyboard[0xC] = 0;break;
+						case SDLK_r:keyboard[0xD] = 0;break;
+						case SDLK_f:keyboard[0xE] = 0;break;
+						case SDLK_v:keyboard[0xF] = 0;break;
+					}
+					break;
+				}
+				break;
+			}
+			
+		if(speed<0)
+		{
+			speed = 0;
+		}
+		else
+		{
+			SDL_Delay(speed);
+		}
+		if (delay_timer > 0)
+			--delay_timer;
+			
+		execute();
+		draw();
+
+	}
+	
+	CleanUp_SDL();
+	
+	return 0;
+}
 
 //Initialize everything
 void initChip8()
@@ -338,127 +470,4 @@ void CleanUp_SDL()
 	SDL_Quit();
 }
 
-int main (int argc, char ** argv)
-{
-	uint32_t quit=0;
-	
-	if (argc < 2)
-	{
-		printf("Usage: ./chip8 <rom> \n");
-		return 0;
-	}
 
-	
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
-	{
-		fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
-		return 0;
-	}
-	SDL_Event event;
-
-	window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
-	renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	SDL_RenderSetLogicalSize(renderer, 64, 32);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);	
-
-	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
-
-	initChip8();
-	if (loadRom(argv[1]) == 0)
-	{
-		CleanUp_SDL();
-		return 0;
-	}
-	int32_t speed=5;
-	
-	while(!quit)
-	{
-		printf("Speed: %d \n",speed);
-		while(SDL_PollEvent(&event))
-		{
-				switch(event.type)
-				{
-					case SDL_QUIT:
-					quit = 1;
-					break;
-
-					case SDL_KEYDOWN:
-
-					switch (event.key.keysym.sym)
-					{
-						case SDLK_ESCAPE:quit = 1;break;
-						case SDLK_F1:
-							initChip8();
-							if (loadRom(argv[1]) == 0)
-							{
-								CleanUp_SDL();
-								return 0;
-							}
-						break;
-						case SDLK_F2:speed -= 1;break;
-						case SDLK_F3:speed += 1;break;
-						case SDLK_x:keyboard[0] = 1;break;
-						case SDLK_1:keyboard[1] = 1;break;
-						case SDLK_2:keyboard[2] = 1;break;
-						case SDLK_3:keyboard[3] = 1;break;
-						case SDLK_q:keyboard[4] = 1;break;
-						case SDLK_w:keyboard[5] = 1;break;
-						case SDLK_e:keyboard[6] = 1;break;
-						case SDLK_a:keyboard[7] = 1;break;
-						case SDLK_s:keyboard[8] = 1;break;
-						case SDLK_d:keyboard[9] = 1;break;
-						case SDLK_z:keyboard[0xA] = 1;break;
-						case SDLK_c:keyboard[0xB] = 1;break;
-						case SDLK_4:keyboard[0xC] = 1;break;
-						case SDLK_r:keyboard[0xD] = 1;break;
-						case SDLK_f:keyboard[0xE] = 1;break;
-						case SDLK_v:keyboard[0xF] = 1;break;
-					}
-					break;
-					
-					case SDL_KEYUP:
-					
-					switch (event.key.keysym.sym)
-					{
-						case SDLK_x:keyboard[0] = 0;break;
-						case SDLK_1:keyboard[1] = 0;break;
-						case SDLK_2:keyboard[2] = 0;break;
-						case SDLK_3:keyboard[3] = 0;break;
-						case SDLK_q:keyboard[4] = 0;break;
-						case SDLK_w:keyboard[5] = 0;break;
-						case SDLK_e:keyboard[6] = 0;break;
-						case SDLK_a: keyboard[7] = 0;break;
-						case SDLK_s:keyboard[8] = 0;break;
-						case SDLK_d:keyboard[9] = 0;break;
-						case SDLK_z:keyboard[0xA] = 0;break;
-						case SDLK_c:keyboard[0xB] = 0;break;
-						case SDLK_4:keyboard[0xC] = 0;break;
-						case SDLK_r:keyboard[0xD] = 0;break;
-						case SDLK_f:keyboard[0xE] = 0;break;
-						case SDLK_v:keyboard[0xF] = 0;break;
-					}
-					break;
-				}
-				break;
-			}
-			
-		if(speed<0)
-		{
-			speed = 0;
-		}
-		else
-		{
-			SDL_Delay(speed);
-		}
-		if (delay_timer > 0)
-			--delay_timer;
-			
-		execute();
-		draw();
-	}
-	
-	CleanUp_SDL();
-	
-	return 0;
-}
