@@ -105,7 +105,7 @@ int main (int argc, char ** argv)
 						case SDLK_q:keyboard[4] = 0;break;
 						case SDLK_w:keyboard[5] = 0;break;
 						case SDLK_e:keyboard[6] = 0;break;
-						case SDLK_a: keyboard[7] = 0;break;
+						case SDLK_a:keyboard[7] = 0;break;
 						case SDLK_s:keyboard[8] = 0;break;
 						case SDLK_d:keyboard[9] = 0;break;
 						case SDLK_z:keyboard[0xA] = 0;break;
@@ -128,8 +128,7 @@ int main (int argc, char ** argv)
 		{
 			SDL_Delay(speed);
 		}
-		if (delay_timer > 0)
-			--delay_timer;
+		if (delay_timer > 0) --delay_timer;
 			
 		execute();
 		draw();
@@ -159,7 +158,7 @@ void initChip8()
 	memcpy(memory,chip8_fontset,80*sizeof(int8_t));
 }
 
-	// Load rom file into memory
+// Load rom file into memory
 uint32_t loadRom(char* file)
 {
 	FILE * fp = fopen(file,"rb");
@@ -213,7 +212,7 @@ void draw()
 	drawflag = false;
 }
 
-	// Emulate cycle
+// Emulate cycle
 void execute()
 {
 	uint8_t X, Y, kk, n;
@@ -227,8 +226,8 @@ void execute()
 	nnn = (opcode & 0x0FFF);
 	kk = (opcode & 0x00FF);
 	n = (opcode & 0x000F);
-	printf("opcode: %x \n", opcode);
-	printf("program counter: %x \n",PC);
+	printf("Opcode: %x \n", opcode);
+	printf("Program Counter: %x \n",PC);
 	printf("I: %x \n",I);
 	
 	switch (opcode & 0xF000)
@@ -262,45 +261,52 @@ void execute()
 			++sp;
 			PC = nnn;
 			break;
-
+			
+			//3xkk
 			case 0x3000: 
 			if (v[X] == kk) PC += 2;
 			break;
-
+			
+			//4xkk
 			case 0x4000:
 			if (v[X] != kk) PC+=2;
 			break;
 
+			//5xy0
 			case 0x5000:
 			if (v[X] == v[Y]) PC+=2;
 			break;
-
+			
+			//6xkk
 			case 0x6000:
 			v[X] = kk;
 			break;
-
+			
+			//7xkk
 			case 0x7000:
 			v[(X)] += kk;
 			break;
 
+			//8xyn
 			case 0x8000:
 			switch(n){
+				//8xy0
 				case 0x0000:
 				v[X ] = v[Y];
 				break;
-
+				//8xy1
 				case 0x0001:
 				v[X ] |= v[Y];
 				break;
-
+				//8xy2
 				case 0x0002:
 				v[X ] &= v[Y];
 				break;
-
+				//8xy3
 				case 0x0003:
 				v[X ] ^= v[Y];
 				break;
-
+				//8xy4
 				case 0x0004:{
 					int i;
 					i = (int)(v[X]) + (int)(v[Y]);
@@ -311,24 +317,24 @@ void execute()
 					v[X] = i & 0xFF;
 				}
 				break;
-
+				//8xy5
 				case 0x0005:
 				if (v[X]> v[Y] ) v[0xF] = 1;
 				else v[0xF] = 0;
 				v[X] -= v[Y];
 				break; 
-
+				//8xy6
 				case 0x0006:
 				v[0xF] = v[X] &1;
 				v[X] >>= 1;
 				break;
-
+				//8xy7
 				case 0x0007:
 				if(v[Y] > v[X]) v[0xF] = 1;
 				else v[0xF] = 0;
 				v[X] = v[Y] - v[X];
 				break;
-
+				//8xyE
 				case 0x000E:
 				v[0xF] = v[X] >> 7;
 				v[X] <<= 1;
@@ -337,23 +343,28 @@ void execute()
 				default: printf("Opcode error 8xxx -> %x\n",opcode );			
 			}
 			break;
-
+			
+			//9xy0
 			case 0x9000:
 			if(v[X] != v[Y]) PC += 2;
 			break;
 
+			//Annn
 			case 0xA000:
 			I = nnn;
 			break;
 
+			//Bnnn
 			case 0xB000:
 			PC = (nnn) + v[0x0];
 			break;
 
+			//Cxkk
 			case 0xC000:
 			v[X] = (rand() % 0x100) & (kk);
 			break;
 
+			//Dxyn
 			case 0xD000:;
 			uint16_t x = v[X];
 			uint16_t y = v[Y];
@@ -376,26 +387,32 @@ void execute()
 			}
 			drawflag = true;
 			break;
-
+			
+			//Exkk
 			case 0xE000:
 			switch(kk){
-
+				//Ex9E
 				case 0x009E:
 				if(keyboard[v[X]] != 0)PC += 2;
 				break;						
+				//ExA1
 				case 0x00A1:
 				if(keyboard[v[X]]==0)PC+=2;
 				break;
 
 			}
 			break;
+
+			//Fxkk
 			case 0xF000:
 
 			switch(kk){
+				//Fx07
 				case 0x0007:
 
 				v[X] = delay_timer;
 				break;
+				//Fx0A
 				case 0x000A:
 				key_pressed = 0;
 				for(i=0;i<16;i++)
@@ -413,20 +430,23 @@ void execute()
 				}
 				
 				break;
+				//Fx15
 				case 0x0015:
 				delay_timer = v[X];
 				break;
+				//Fx18
 				case 0x0018:
 				sound_timer = v[X];
 				break;
+				//Fx1E
 				case 0x001E:
 				I = I + v[X];
 				break;
-
+				//Fx29
 				case 0x0029:
 				I = v[X] * 5;
 				break;
-
+				//Fx33
 				case 0x0033:{
 					int vX;
 					vX = v[X];
@@ -438,14 +458,14 @@ void execute()
 				}
 				break;
 
-
+				//Fx55
 				case 0x0055:
 
 				for (uint8_t i = 0; i <= X; ++i){
 					memory[I+ i] = v[i];	
 				}
 				break;
-
+				//Fx65
 				case 0x0065:
 
 				for (uint8_t i = 0; i <= X; ++i){
@@ -455,10 +475,7 @@ void execute()
 
 			}
 			break;	
-			default:
-			
-			printf("Opcode error -> %x \n",opcode);
-			break;
+			default: printf("OPCODE ERROR -> %x \n",opcode); break;
 			}
 }	
 
