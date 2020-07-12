@@ -36,11 +36,6 @@ ESC - Exit
 |  7	8	9	E       |  A S D F      |
 |  A	0	B	F       |  Z X C V       |
 
-
-## TODO:
-Implement SCHIP8 instructions
-
-
 ## Documentation used:
 http://mattmik.com/files/chip8/mastering/chip8.html
 
