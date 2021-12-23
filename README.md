@@ -1,19 +1,11 @@
-# chip8
+# chip8 PS4
 Chip8 interpreter in C
 
 A simple Chip8 interpreter written in C for educational purposes
 
-## Building
-```bash
-cd chip8/
-chmod +x install.sh 
-./install.sh
-```
-Note: You can manually build the program just using: 
-```bash
-cd chip8/
-make
-```
+## TODO:
+- Implement a file selection menu ( considering imgui )
+- Optimize switch hell
 
 ## Usage
 ```bash
@@ -35,6 +27,11 @@ ESC - Exit
 |  4	5	6	D       |  Q W E R      |
 |  7	8	9	E       |  A S D F      |
 |  A	0	B	F       |  Z X C V       |
+
+
+## OpenOrbis Toolchain:
+
+https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain
 
 ## Documentation used:
 http://mattmik.com/files/chip8/mastering/chip8.html
