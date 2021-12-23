@@ -2,8 +2,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+#include "../../_common/log.h"
+#include <sstream>
 #include <SDL2/SDL.h>
+#include <iostream>
 #include "chip8.h"
+
+std::stringstream debugLogStream;
 
 void initChip8();
 void draw();
@@ -15,16 +21,17 @@ SDL_Renderer * renderer;
 SDL_Window * window;
 SDL_Texture * screen;
 
+
 int main (int argc, char ** argv)
 {
 	uint32_t quit=0;
 	
-	if (argc < 2)
+/*	if (argc < 2)
 	{
 		printf("Usage: ./chip8 <rom> \n");
 		return 0;
 	}
-
+*/
 	
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
 	{
@@ -33,7 +40,7 @@ int main (int argc, char ** argv)
 	}
 	SDL_Event event;
 
-	window = SDL_CreateWindow(("CHIP-8:  %s",argv[1]),SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
+	window = SDL_CreateWindow("CHIP-8",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,640,320,0);
 	renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_RenderSetLogicalSize(renderer, 64, 32);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -42,7 +49,7 @@ int main (int argc, char ** argv)
 	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,64,32);
 
 	initChip8();
-	if (loadRom(argv[1]) == 0)
+	if (loadRom("/app0/assets/CONNECT4") == 0)
 	{
 		CleanUp_SDL();
 		return 0;
@@ -165,8 +172,8 @@ uint32_t loadRom(char* file)
 	
 	if(fp == NULL)
 	{
-		fprintf(stderr,"Can't open the file rom \n");
-		return 0;
+		//DEBUGLOG << "Can't open the file rom";
+		return 1;
 	}	
 	
 	fseek(fp, 0, SEEK_END);
@@ -232,63 +239,64 @@ void execute()
 	
 	switch (opcode & 0xF000)
 	{
-			case 0x0000:
+			case 0x0000:{
 
 			switch(opcode & 0x00FF){
 				// 00E0 
-				case 0x00E0:
+				case 0x00E0:{
 				memset(gfx, 0, 2048);
 				drawflag = true;
 				break;
-
+				}
 				//00E0 
-				case 0x00EE:
+				case 0x00EE:{
 				--sp;
 				PC = stack[sp];
 				break;
-
+				}
 				default: printf("Opcode error 0xxx -> %x\n",opcode ); 
 			}break;
+			}
 
 			//1nnn 
-			case 0x1000:
+			case 0x1000:{
 			PC = nnn;
 			break;
-			
+			}
 			//2nnn 
-			case 0x2000:
+			case 0x2000:{
 			stack[sp] = PC;
 			++sp;
 			PC = nnn;
 			break;
-			
+			}
 			//3xkk
-			case 0x3000: 
+			case 0x3000: {
 			if (v[X] == kk) PC += 2;
 			break;
-			
+			}
 			//4xkk
-			case 0x4000:
+			case 0x4000:{
 			if (v[X] != kk) PC+=2;
 			break;
-
+			}
 			//5xy0
-			case 0x5000:
+			case 0x5000:{
 			if (v[X] == v[Y]) PC+=2;
 			break;
-			
+			}
 			//6xkk
-			case 0x6000:
+			case 0x6000:{
 			v[X] = kk;
 			break;
-			
+			}
 			//7xkk
-			case 0x7000:
+			case 0x7000:{
 			v[(X)] += kk;
 			break;
-
+			}
 			//8xyn
-			case 0x8000:
+			case 0x8000:{
 			switch(n){
 				//8xy0
 				case 0x0000:
@@ -343,6 +351,7 @@ void execute()
 				default: printf("Opcode error 8xxx -> %x\n",opcode );			
 			}
 			break;
+			}
 			
 			//9xy0
 			case 0x9000:
@@ -365,7 +374,7 @@ void execute()
 			break;
 
 			//Dxyn
-			case 0xD000:;
+			case 0xD000:{
 			uint16_t x = v[X];
 			uint16_t y = v[Y];
 			uint16_t height = n;
@@ -387,9 +396,9 @@ void execute()
 			}
 			drawflag = true;
 			break;
-			
+			}
 			//Exkk
-			case 0xE000:
+			case 0xE000:{
 			switch(kk){
 				//Ex9E
 				case 0x009E:
@@ -402,9 +411,9 @@ void execute()
 
 			}
 			break;
-
+			}
 			//Fxkk
-			case 0xF000:
+			case 0xF000:{
 
 			switch(kk){
 				//Fx07
@@ -474,7 +483,9 @@ void execute()
 				break;
 
 			}
+				    }
 			break;	
+				    
 			default: printf("OPCODE ERROR -> %x \n",opcode); break;
 			}
 }	

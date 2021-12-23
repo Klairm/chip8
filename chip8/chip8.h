@@ -4,7 +4,7 @@
 
 
 #include <stdint.h>
-
+#include "../../_common/log.h"
 #define MEMSIZE 4096
 
 uint16_t opcode; 
