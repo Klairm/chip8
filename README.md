@@ -12,6 +12,7 @@ A simple Chip8 interpreter written in C++ for educational purposes
 Until I implement a menu the rom loaded it's harcoded (ye lol), so now it justs loads PONG2, you can change that in code and build again or wait until I make
 a proper menu 
 
+(yes you need to connect a keyboard to your PS4)
 
 
 ## Keyboard
