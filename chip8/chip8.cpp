@@ -1,17 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <sstream>
-#include <SDL2/SDL.h>
-#include "../../_common/log.h"
 #include "chip8.h"
-#include "notifi.h"
-
+#include <orbis/Keyboard.h>
 std::stringstream debugLogStream;
 
 void initChip8();
+int initSDL();
 void draw();
 void execute();
 void CleanUp_SDL();
@@ -20,205 +12,138 @@ uint32_t loadRom(char *file);
 SDL_Renderer *renderer;
 SDL_Window *window;
 SDL_Texture *screen;
+SDL_Event event;
 
 int main(int argc, char **argv)
 {
 	// FIXME: Stop using notifi for loggin information pls, (until I get UART this method will stay)
 	uint32_t quit = 0;
+	auto sceKeyboard = new Keyboard();
 	setvbuf(stdout, NULL, _IONBF, 0);
-	if (SDL_Init(SDL_INIT_VIDEO) != 0)
+	if (!sceKeyboard->Init(-1))
 	{
-		notifi(NULL, "%s", SDL_GetError());
+		notifi(NULL, "%s", "Can't init libSceKeyboard!!");
+	}
+
+	if (initSDL() == 1)
+	{
 		return 1;
 	}
-	SDL_Event event;
-
-	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 320, 0);
-	if (window == NULL)
-	{
-		notifi(NULL,"%s",SDL_GetError());
-	}
-	
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-	if(renderer == NULL){
-		notifi(NULL,"SDL_Renderer %s",SDL_GetError());
-	}
-	if(SDL_RenderSetLogicalSize(renderer, 64, 32) < 0 ){
-		notifi(NULL,"Logical: %s",SDL_GetError());
-	}
-	if(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)){
-		notifi(NULL,"DrawColor: %s",SDL_GetError());
-	
-	}
-	if(SDL_RenderClear(renderer)){
-		notifi(NULL,"Clear: %s",SDL_GetError());
-	}
-
-	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
-	if(screen == NULL){
-		notifi(NULL,"Texture: %s",SDL_GetError());
-	}
-	
 	initChip8();
-	if (loadRom("/app0/assets/misc/test_opcode.ch8") != 0)
+
+	if (loadRom("/app0/assets/misc/PONG2") != 0)
 	{
-		notifi(NULL,"%s","Something failed!");
+		notifi(NULL, "%s", "Something failed!");
 		CleanUp_SDL();
 		return 1;
 	}
-	int32_t speed = 5;
-	
+
+	int32_t speed = 7;
+
+	uint8_t keys[32];
+	memset(keys, 0, 32);
+
 	while (!quit)
 	{
-		printf("Speed: %d \n", speed);
-		while (SDL_PollEvent(&event))
+
+		sceKeyboard->Poll();
+		// thanks znullptr for this help
+		for (int ix = 0; ix < 32; ix++)
 		{
-			switch (event.type)
+			uint8_t found = 0;
+			for (int ik = 0; ik < (int)sizeof(sceKeyboard->data); ik++)
 			{
-			case SDL_QUIT:
-				quit = 1;
-				break;
-
-			case SDL_KEYDOWN:
-
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_ESCAPE:
-					quit = 1;
-					break;
-				case SDLK_F1:
-					initChip8();
-					if (loadRom(argv[1]) == 0)
-					{
-						CleanUp_SDL();
-						return 0;
-					}
-					break;
-				case SDLK_F2:
-					speed -= 1;
-					break;
-				case SDLK_F3:
-					speed += 1;
-					break;
-				case SDLK_x:
-					keyboard[0] = 1;
-					break;
-				case SDLK_1:
-					keyboard[1] = 1;
-					break;
-				case SDLK_2:
-					keyboard[2] = 1;
-					break;
-				case SDLK_3:
-					keyboard[3] = 1;
-					break;
-				case SDLK_q:
-					keyboard[4] = 1;
-					break;
-				case SDLK_w:
-					keyboard[5] = 1;
-					break;
-				case SDLK_e:
-					keyboard[6] = 1;
-					break;
-				case SDLK_a:
-					keyboard[7] = 1;
-					break;
-				case SDLK_s:
-					keyboard[8] = 1;
-					break;
-				case SDLK_d:
-					keyboard[9] = 1;
-					break;
-				case SDLK_z:
-					keyboard[0xA] = 1;
-					break;
-				case SDLK_c:
-					keyboard[0xB] = 1;
-					break;
-				case SDLK_4:
-					keyboard[0xC] = 1;
-					break;
-				case SDLK_r:
-					keyboard[0xD] = 1;
-					break;
-				case SDLK_f:
-					keyboard[0xE] = 1;
-					break;
-				case SDLK_v:
-					keyboard[0xF] = 1;
-					break;
-				}
-				break;
-
-			case SDL_KEYUP:
-
-				switch (event.key.keysym.sym)
-				{
-				case SDLK_x:
-					keyboard[0] = 0;
-					break;
-				case SDLK_1:
-					keyboard[1] = 0;
-					break;
-				case SDLK_2:
-					keyboard[2] = 0;
-					break;
-				case SDLK_3:
-					keyboard[3] = 0;
-					break;
-				case SDLK_q:
-					keyboard[4] = 0;
-					break;
-				case SDLK_w:
-					keyboard[5] = 0;
-					break;
-				case SDLK_e:
-					keyboard[6] = 0;
-					break;
-				case SDLK_a:
-					keyboard[7] = 0;
-					break;
-				case SDLK_s:
-					keyboard[8] = 0;
-					break;
-				case SDLK_d:
-					keyboard[9] = 0;
-					break;
-				case SDLK_z:
-					keyboard[0xA] = 0;
-					break;
-				case SDLK_c:
-					keyboard[0xB] = 0;
-					break;
-				case SDLK_4:
-					keyboard[0xC] = 0;
-					break;
-				case SDLK_r:
-					keyboard[0xD] = 0;
-					break;
-				case SDLK_f:
-					keyboard[0xE] = 0;
-					break;
-				case SDLK_v:
-					keyboard[0xF] = 0;
-					break;
-				}
-				break;
+				uint8_t kc = sceKeyboard->data.keycodes[ik];
+				if (kc && ix == kc)
+					found = true;
 			}
-			break;
+			bool press = found && !(keys[ix]);
+			bool release = !found && (keys[ix]);
+			keys[ix] = found;
+
+			if (press || release)
+			{
+				char key = (char)sceKeyboard->Key2Char(ix);
+				// TODO: Optimize this shit
+
+				switch (key)
+				{
+				case 'x':
+				case 'X':
+					press ? keyboard[0] = 1 : keyboard[0] = 0;
+					break;
+				case '1':
+					press ? keyboard[1] = 1 : keyboard[1] = 0;
+					break;
+				case '2':
+					press ? keyboard[2] = 1 : keyboard[2] = 0;
+					break;
+				case 'g':
+				case 'G':
+					press ? keyboard[3] = 1 : keyboard[3] = 0;
+					break;
+				case 'T':
+				case 't':
+
+					press ? keyboard[0xC] = 1 : keyboard[0xC] = 0;
+					break;
+				case 'q':
+				case 'Q':
+					press ? keyboard[4] = 1 : keyboard[4] = 0;
+					break;
+				case 'w':
+				case 'W':
+					press ? keyboard[5] = 1 : keyboard[5] = 0;
+					break;
+				case 'e':
+				case 'E':
+					press ? keyboard[6] = 1 : keyboard[6] = 0;
+					break;
+				case 'a':
+				case 'A':
+					press ? keyboard[7] = 1 : keyboard[7] = 0;
+					break;
+				case 's':
+				case 'S':
+					press ? keyboard[8] = 1 : keyboard[8] = 0;
+					break;
+				case 'd':
+				case 'D':
+					press ? keyboard[9] = 1 : keyboard[9] = 0;
+					break;
+				case 'z':
+				case 'Z':
+					press ? keyboard[0xA] = 1 : keyboard[0xA] = 0;
+					break;
+				case 'c':
+				case 'C':
+					press ? keyboard[0xB] = 1 : keyboard[0xB] = 0;
+					break;
+				case 'r':
+				case 'R':
+					press ? keyboard[0xD] = 1 : keyboard[0xD] = 0;
+					break;
+				case 'f':
+				case 'F':
+					press ? keyboard[0xE] = 1 : keyboard[0xE] = 0;
+					break;
+				case 'v':
+				case 'V':
+					press ? keyboard[0xF] = 1 : keyboard[0xF] = 0;
+					break;
+
+				default:
+					break;
+				}
+			}
 		}
-		
-		if (speed < 0)
-		{
-			speed = 0;
-		}
-		else
-		{
-			SDL_Delay(speed);
-		}
+
+		SDL_Delay(1);
+
 		if (delay_timer > 0)
+		{
 			--delay_timer;
+		}
 
 		execute();
 		draw();
@@ -247,6 +172,52 @@ void initChip8()
 	memcpy(memory, chip8_fontset, 80 * sizeof(int8_t));
 }
 
+int initSDL()
+{
+	if (SDL_Init(SDL_INIT_VIDEO) != 0)
+	{
+		notifi(NULL, "%s", SDL_GetError());
+		return 1;
+	}
+
+	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 320, 0);
+	if (window == NULL)
+	{
+		notifi(NULL, "%s", SDL_GetError());
+		return 1;
+	}
+
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+	if (renderer == NULL)
+	{
+		notifi(NULL, "SDL_Renderer %s", SDL_GetError());
+		return 1;
+	}
+	if (SDL_RenderSetLogicalSize(renderer, 64, 32) < 0)
+	{
+		notifi(NULL, "Logical: %s", SDL_GetError());
+		return 1;
+	}
+	if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255))
+	{
+		notifi(NULL, "DrawColor: %s", SDL_GetError());
+		return 1;
+	}
+	if (SDL_RenderClear(renderer))
+	{
+		notifi(NULL, "Clear: %s", SDL_GetError());
+		return 1;
+	}
+
+	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
+	if (screen == NULL)
+	{
+		notifi(NULL, "Texture: %s", SDL_GetError());
+		return 1;
+	}
+	return 0;
+}
+
 // Load rom file into memory
 uint32_t loadRom(char *file)
 {
@@ -254,7 +225,7 @@ uint32_t loadRom(char *file)
 
 	if (fp == NULL)
 	{
-		notifi(NULL,"%s","Can't open the file rom");
+		notifi(NULL, "%s", "Can't open the file rom");
 		return 1;
 	}
 
