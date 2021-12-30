@@ -2,10 +2,10 @@
 TITLE       := chip8
 VERSION     := 1.00
 TITLE_ID    := CHIP00090
-CONTENT_ID  := IV0000-CHIP00090_00-SDLEXAMPLE000000
+CONTENT_ID  := IV0000-CHIP00090_00-CHIPEMULAT000000
 
 # Libraries linked into the ELF.
-LIBS        := -lc -lkernel -lc++ -lSceUserService -lSceVideoOut -lSceAudioOut -lScePad -lSceSysmodule -lSceFreeType -lSDL2 -lSDL2_image
+LIBS        := -lc -lkernel -lc++ -lSceUserService -lSceVideoOut -lSceAudioOut -lSceKeyboard -lScePad -lSceSysmodule -lSceFreeType -lSDL2 -lSDL2_image
 
 # Additional compile flags.
 #EXTRAFLAGS  :=
