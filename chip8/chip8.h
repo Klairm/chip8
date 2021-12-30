@@ -1,10 +1,15 @@
 #ifndef CHIP_8
 #define CHIP_8
 
-
-
-#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string>
+#include <sstream>
+#include <SDL2/SDL.h>
 #include "../../_common/log.h"
+#include "keyboard.h"
+#include <stdint.h>
 #define MEMSIZE 4096
 
 uint16_t opcode; 
