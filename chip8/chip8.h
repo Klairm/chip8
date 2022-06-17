@@ -1,17 +1,26 @@
 #ifndef CHIP_8
 #define CHIP_8
 
-#include <stdio.h>
+
 #include <stdlib.h>
 #include <stdbool.h>
-#include <string>
-#include <sstream>
 #include <SDL2/SDL.h>
-#include "../../_common/log.h"
-#include "keyboard.h"
 #include <stdint.h>
-#define MEMSIZE 4096
 
+
+#include "log.h"
+
+#include "keyboard.h"
+#include "graphics.h"
+#include "controller.h"
+#include "print.h"
+
+
+
+#define MEMSIZE 4096
+#define WIDTH 640
+#define HEIGHT 320
+std::stringstream debugLogStream;
 uint16_t opcode; 
 uint8_t  memory[(MEMSIZE)];
 uint8_t v[16];

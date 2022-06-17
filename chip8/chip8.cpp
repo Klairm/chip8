@@ -1,31 +1,116 @@
 #include "chip8.h"
-#include <orbis/Keyboard.h>
-std::stringstream debugLogStream;
+#include "notifi.h"
+//#include <orbis/Keyboard.h>
+#include <orbis/libkernel.h>
+#include <dirent.h>
 
-void initChip8();
+#define FRAME_WIDTH 1920
+#define FRAME_HEIGHT 1080
+#define FRAME_DEPTH 4
+
+/*void initChip8();
 int initSDL();
 void draw();
 void execute();
-void CleanUp_SDL();
+void CleanUp_SDL();*/
+void listFiles();
+void arrowMenu(int realPos, int arrowPos, int Y);
+void getFiles();
+
 uint32_t loadRom(char *file);
 
-SDL_Renderer *renderer;
+/*SDL_Renderer *renderer;
 SDL_Window *window;
 SDL_Texture *screen;
-SDL_Event event;
+SDL_Event event;*/
+int frameID = 0;
+int Y = 220;
+int Ylist = Y;
+int pos = 1;
 
+DIR *p;
+struct dirent *pp;
+
+Scene2D *scene;
+Color red = {255, 0, 0};
+char filenames[50][50];
 int main(int argc, char **argv)
 {
-	// FIXME: Stop using notifi for loggin information pls, (until I get UART this method will stay)
-	uint32_t quit = 0;
-	auto sceKeyboard = new Keyboard();
+
+	// No buffering
 	setvbuf(stdout, NULL, _IONBF, 0);
-	if (!sceKeyboard->Init(-1))
+
+	scene = new Scene2D(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
+	auto controller = new Controller();
+	if (!scene->Init(0xC000000, 2))
 	{
-		notifi(NULL, "%s", "Can't init libSceKeyboard!!");
+		notifi(NULL, "%s", "Can't init scene!!");
+	}
+	uint32_t quit = 0;
+
+	if (!controller->Init(-1))
+	{
+		notifi(NULL, "%s", "Can't init controller!");
+	}
+	if (!scene->InitFont(&fontSize, font, FONT_SIZE))
+	{
+		DEBUGLOG << "Failed to initialize large font '" << font << "'";
+	}
+	getFiles();
+	while (!quit)
+	{
+
+		listFiles();
+
+		if (controller->CirclePressed())
+		{
+			quit = 1;
+		}
+		else if (controller->DpadDownPressed())
+		{
+
+			scene->FrameBufferFill({
+				0,
+				0,
+				0,
+			});
+			scene->FrameBufferSwap();
+
+			Y += 30;
+		}
+		else if (controller->DpadUpPressed())
+		{
+
+			scene->FrameBufferFill({
+				0,
+				0,
+				0,
+			});
+			scene->FrameBufferSwap();
+			pos--;
+			Y -= 30;
+		}
+
+		scene->SubmitFlip(frameID);
+		scene->FrameWait(frameID);
+		scene->FrameBufferSwap();
+		frameID++;
 	}
 
-	if (initSDL() == 1)
+	/*
+
+	auto sceKeyboard = new Keyboard();
+
+
+
+
+	if (!sceKeyboard->Init(-1))
+	{
+		DEBUGLOG << "[ERROR] Can't init libSceKeyboard!!";
+	}
+*/
+
+	/*if (initSDL() == 1)
 	{
 		return 1;
 	}
@@ -33,7 +118,7 @@ int main(int argc, char **argv)
 
 	if (loadRom("/app0/assets/misc/PONG2") != 0)
 	{
-		notifi(NULL, "%s", "Something failed!");
+		DEBUGLOG << "Something failed trying to load the ROM";
 		CleanUp_SDL();
 		return 1;
 	}
@@ -65,6 +150,7 @@ int main(int argc, char **argv)
 			{
 				char key = (char)sceKeyboard->Key2Char(ix);
 				// TODO: Optimize this shit
+				// this is so disgusting and it deserves a special place in hell
 
 				switch (key)
 				{
@@ -150,11 +236,53 @@ int main(int argc, char **argv)
 	}
 
 	CleanUp_SDL();
-
+*/
 	return 0;
 }
 
-//Initialize everything
+void arrowMenu(int realPos, int arrowPos, int Y)
+{
+
+	if (realPos == arrowPos)
+	{
+		screenPrint(scene, (char *)"->", Y, 90, red);
+	}
+	else
+	{
+		screenPrint(scene, (char *)" ", Y, 90, red);
+	}
+}
+
+void getFiles()
+{
+	p = opendir("/app0/assets/misc/");
+	if (p != NULL)
+	{
+
+		int i = 0;
+
+		while ((pp = readdir(p)) != NULL)
+		{
+			strcpy(filenames[i], pp->d_name);
+			i++;
+		}
+	}
+
+	closedir(p);
+}
+void listFiles()
+{
+	for (int i = 0; i < (sizeof(filenames) / sizeof(*filenames)); i++)
+	{
+
+		arrowMenu(i, pos, Y);
+		screenPrint(scene, filenames[i], Ylist);
+
+		Ylist += 30;
+	}
+}
+/*
+// Initialize everything
 void initChip8()
 {
 	delay_timer = 0;
@@ -176,43 +304,43 @@ int initSDL()
 {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
 	{
-		notifi(NULL, "%s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed to initialize SDL: " << SDL_GetError();
 		return 1;
 	}
 
-	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 320, 0);
+	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, 0);
 	if (window == NULL)
 	{
-		notifi(NULL, "%s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to create window: " << SDL_GetError();
 		return 1;
 	}
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 	if (renderer == NULL)
 	{
-		notifi(NULL, "SDL_Renderer %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to create renderer: " << SDL_GetError();
 		return 1;
 	}
 	if (SDL_RenderSetLogicalSize(renderer, 64, 32) < 0)
 	{
-		notifi(NULL, "Logical: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to set logical rendering size: " << SDL_GetError();
 		return 1;
 	}
 	if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255))
 	{
-		notifi(NULL, "DrawColor: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to set draw color rendering: " << SDL_GetError();
 		return 1;
 	}
 	if (SDL_RenderClear(renderer))
 	{
-		notifi(NULL, "Clear: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to clear renderer: " << SDL_GetError();
 		return 1;
 	}
 
 	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
 	if (screen == NULL)
 	{
-		notifi(NULL, "Texture: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to create texture: " << SDL_GetError();
 		return 1;
 	}
 	return 0;
@@ -225,7 +353,7 @@ uint32_t loadRom(char *file)
 
 	if (fp == NULL)
 	{
-		notifi(NULL, "%s", "Can't open the file rom");
+		DEBUGLOG << "[ERROR] Cannot open file rom!";
 		return 1;
 	}
 
@@ -304,7 +432,7 @@ void execute()
 			drawflag = true;
 			break;
 		}
-		//00E0
+		// 00E0
 		case 0x00EE:
 		{
 			--sp;
@@ -317,13 +445,13 @@ void execute()
 		break;
 	}
 
-	//1nnn
+	// 1nnn
 	case 0x1000:
 	{
 		PC = nnn;
 		break;
 	}
-	//2nnn
+	// 2nnn
 	case 0x2000:
 	{
 		stack[sp] = PC;
@@ -331,61 +459,61 @@ void execute()
 		PC = nnn;
 		break;
 	}
-	//3xkk
+	// 3xkk
 	case 0x3000:
 	{
 		if (v[X] == kk)
 			PC += 2;
 		break;
 	}
-	//4xkk
+	// 4xkk
 	case 0x4000:
 	{
 		if (v[X] != kk)
 			PC += 2;
 		break;
 	}
-	//5xy0
+	// 5xy0
 	case 0x5000:
 	{
 		if (v[X] == v[Y])
 			PC += 2;
 		break;
 	}
-	//6xkk
+	// 6xkk
 	case 0x6000:
 	{
 		v[X] = kk;
 		break;
 	}
-	//7xkk
+	// 7xkk
 	case 0x7000:
 	{
 		v[(X)] += kk;
 		break;
 	}
-	//8xyn
+	// 8xyn
 	case 0x8000:
 	{
 		switch (n)
 		{
-		//8xy0
+		// 8xy0
 		case 0x0000:
 			v[X] = v[Y];
 			break;
-		//8xy1
+		// 8xy1
 		case 0x0001:
 			v[X] |= v[Y];
 			break;
-		//8xy2
+		// 8xy2
 		case 0x0002:
 			v[X] &= v[Y];
 			break;
-		//8xy3
+		// 8xy3
 		case 0x0003:
 			v[X] ^= v[Y];
 			break;
-		//8xy4
+		// 8xy4
 		case 0x0004:
 		{
 			int i;
@@ -397,7 +525,7 @@ void execute()
 			v[X] = i & 0xFF;
 		}
 		break;
-		//8xy5
+		// 8xy5
 		case 0x0005:
 			if (v[X] > v[Y])
 				v[0xF] = 1;
@@ -405,12 +533,12 @@ void execute()
 				v[0xF] = 0;
 			v[X] -= v[Y];
 			break;
-		//8xy6
+		// 8xy6
 		case 0x0006:
 			v[0xF] = v[X] & 1;
 			v[X] >>= 1;
 			break;
-		//8xy7
+		// 8xy7
 		case 0x0007:
 			if (v[Y] > v[X])
 				v[0xF] = 1;
@@ -418,7 +546,7 @@ void execute()
 				v[0xF] = 0;
 			v[X] = v[Y] - v[X];
 			break;
-		//8xyE
+		// 8xyE
 		case 0x000E:
 			v[0xF] = v[X] >> 7;
 			v[X] <<= 1;
@@ -430,28 +558,28 @@ void execute()
 		break;
 	}
 
-	//9xy0
+	// 9xy0
 	case 0x9000:
 		if (v[X] != v[Y])
 			PC += 2;
 		break;
 
-	//Annn
+	// Annn
 	case 0xA000:
 		I = nnn;
 		break;
 
-	//Bnnn
+	// Bnnn
 	case 0xB000:
 		PC = (nnn) + v[0x0];
 		break;
 
-	//Cxkk
+	// Cxkk
 	case 0xC000:
 		v[X] = (rand() % 0x100) & (kk);
 		break;
 
-	//Dxyn
+	// Dxyn
 	case 0xD000:
 	{
 		uint16_t x = v[X];
@@ -478,17 +606,17 @@ void execute()
 		drawflag = true;
 		break;
 	}
-	//Exkk
+	// Exkk
 	case 0xE000:
 	{
 		switch (kk)
 		{
-		//Ex9E
+		// Ex9E
 		case 0x009E:
 			if (keyboard[v[X]] != 0)
 				PC += 2;
 			break;
-		//ExA1
+		// ExA1
 		case 0x00A1:
 			if (keyboard[v[X]] == 0)
 				PC += 2;
@@ -496,18 +624,18 @@ void execute()
 		}
 		break;
 	}
-	//Fxkk
+	// Fxkk
 	case 0xF000:
 	{
 
 		switch (kk)
 		{
-		//Fx07
+		// Fx07
 		case 0x0007:
 
 			v[X] = delay_timer;
 			break;
-		//Fx0A
+		// Fx0A
 		case 0x000A:
 			key_pressed = 0;
 			for (i = 0; i < 16; i++)
@@ -525,23 +653,23 @@ void execute()
 			}
 
 			break;
-		//Fx15
+		// Fx15
 		case 0x0015:
 			delay_timer = v[X];
 			break;
-		//Fx18
+		// Fx18
 		case 0x0018:
 			sound_timer = v[X];
 			break;
-		//Fx1E
+		// Fx1E
 		case 0x001E:
 			I = I + v[X];
 			break;
-		//Fx29
+		// Fx29
 		case 0x0029:
 			I = v[X] * 5;
 			break;
-		//Fx33
+		// Fx33
 		case 0x0033:
 		{
 			int vX;
@@ -554,7 +682,7 @@ void execute()
 		}
 		break;
 
-		//Fx55
+		// Fx55
 		case 0x0055:
 
 			for (uint8_t i = 0; i <= X; ++i)
@@ -562,7 +690,7 @@ void execute()
 				memory[I + i] = v[i];
 			}
 			break;
-		//Fx65
+		// Fx65
 		case 0x0065:
 
 			for (uint8_t i = 0; i <= X; ++i)
@@ -587,3 +715,4 @@ void CleanUp_SDL()
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 }
+*/
