@@ -1,6 +1,6 @@
 #include <orbis/Sysmodule.h>
 #include "keyboard.h"
-#include "../../_common/log.h"
+#include "log.h"
 
 
 Keyboard::Keyboard()
@@ -19,7 +19,7 @@ bool Keyboard::Init(int keyboardUserID)
     {
         if(sceSysmoduleLoadModule(SCE_SYSMODULE_KEYBOARD))
         {
-            notifi(NULL,"%s","Failed to load SCE_SYSMODULE_KEYBOARD!");
+            DEBUGLOG << "[SCE_ERROR] Failed to load SCE_SYSMODULE_KEYBOARD!: ";
             return false;
         }
         isSysmoduleLoaded = true;
@@ -28,7 +28,7 @@ bool Keyboard::Init(int keyboardUserID)
     // Initialize the Keyboard library
     if(sceKeyboardInit() != 0)
     {
-        notifi(NULL,"%s","Failed to initialize keyboard library!");
+        DEBUGLOG << "[SCE_ERROR] Failed to initialize keyboard library!!: ";
         return false;
     }
 
@@ -50,7 +50,7 @@ bool Keyboard::Init(int keyboardUserID)
 
     if(this->handle < 0)
     {
-        notifi(NULL,"%s","Failed to open keyboard!");
+        DEBUGLOG << "[SCE_ERROR] Failed trying to open the keyboard!: ";
         return false;
     }
 

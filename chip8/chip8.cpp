@@ -1,48 +1,139 @@
 #include "chip8.h"
+#include "notifi.h"
 #include <orbis/Keyboard.h>
-std::stringstream debugLogStream;
+#include <orbis/libkernel.h>
+#include <dirent.h>
+
+#define FRAME_WIDTH 1920
+#define FRAME_HEIGHT 1080
+#define FRAME_DEPTH 4
 
 void initChip8();
 int initSDL();
 void draw();
 void execute();
 void CleanUp_SDL();
-uint32_t loadRom(char *file);
+void listFiles();
+void arrowMenu(int realPos, int arrowPos, int Y);
+void getFiles();
 
+uint32_t loadRom(char *file);
+uint32_t quit = 0;
 SDL_Renderer *renderer;
 SDL_Window *window;
 SDL_Texture *screen;
 SDL_Event event;
+int frameID = 0;
+int Y = 200;
+int pos = 0;
+int quitMain = 0;
+int fileCount = 0;
+DIR *p;
+struct dirent *pp;
 
+Scene2D *scene;
+Color red = {255, 0, 0};
+char filenames[50][50];
+char selectedRom[35];
 int main(int argc, char **argv)
 {
-	// FIXME: Stop using notifi for loggin information pls, (until I get UART this method will stay)
-	uint32_t quit = 0;
-	auto sceKeyboard = new Keyboard();
+
+	// No buffering
 	setvbuf(stdout, NULL, _IONBF, 0);
+
+	scene = new Scene2D(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
+	auto controller = new Controller();
+	auto sceKeyboard = new Keyboard();
+	if (!scene->Init(0xC000000, 2))
+	{
+		DEBUGLOG << "[ERROR] Can't init scene2D!!";
+	}
+
 	if (!sceKeyboard->Init(-1))
 	{
-		notifi(NULL, "%s", "Can't init libSceKeyboard!!");
+		DEBUGLOG << "[ERROR] Can't init SceKeyboard!!";
 	}
 
-	if (initSDL() == 1)
+	if (!controller->Init(-1))
 	{
+		DEBUGLOG << "[ERROR] Can't init the controller!!";
+	}
+
+	if (!scene->InitFont(&fontSize, font, FONT_SIZE))
+	{
+		DEBUGLOG << "Failed to initialize large font '" << font << "'";
+	}
+	getFiles();
+
+	while (!quitMain)
+	{
+		scene->FrameBufferFill({0, 0, 0});
+
+		if (controller->DpadDownPressed())
+		{
+
+			if (pos > fileCount)
+			{
+
+				Y = (200 + (fileCount * 40));
+				pos = fileCount;
+			}
+			else
+			{
+				pos++;
+				Y += 40;
+			}
+		}
+		else if (controller->DpadUpPressed())
+		{
+			if (pos < 0)
+			{
+				Y = 200;
+				pos = 0;
+			}
+			else
+			{
+				pos--;
+				Y -= 40;
+			}
+		}
+
+		else if (controller->XPressed())
+		{
+
+			initChip8();
+			sprintf(selectedRom, "/app0/assets/misc/%s", filenames[pos]);
+
+			if (loadRom(selectedRom) != 0)
+			{
+				DEBUGLOG << "Something failed trying to load the ROM";
+
+				return 1;
+			}
+			scene->FrameBufferFill({0, 0, 0});
+
+			sceVideoOutClose(scene->videoID());
+			free(scene);
+
+			quitMain = 1;
+		}
+		listFiles();
+
+		scene->SubmitFlip(frameID);
+		scene->FrameWait(frameID);
+		scene->FrameBufferSwap();
+		frameID++;
+	}
+
+	if (initSDL() != 0)
+	{
+		notifi(NULL, "%s", SDL_GetError());
 		return 1;
 	}
-	initChip8();
-
-	if (loadRom("/app0/assets/misc/PONG2") != 0)
-	{
-		notifi(NULL, "%s", "Something failed!");
-		CleanUp_SDL();
-		return 1;
-	}
-
 	int32_t speed = 7;
 
 	uint8_t keys[32];
 	memset(keys, 0, 32);
-
 	while (!quit)
 	{
 
@@ -65,6 +156,7 @@ int main(int argc, char **argv)
 			{
 				char key = (char)sceKeyboard->Key2Char(ix);
 				// TODO: Optimize this shit
+				// this is so disgusting and it deserves a special place in hell
 
 				switch (key)
 				{
@@ -131,7 +223,24 @@ int main(int argc, char **argv)
 				case 'V':
 					press ? keyboard[0xF] = 1 : keyboard[0xF] = 0;
 					break;
-
+				case 'M':
+				case 'm':
+					speed--;
+					notifi(NULL, "Speed: %d", speed);
+					break;
+				case 'L':
+				case 'l':
+					speed++;
+					notifi(NULL, "Speed: %d", speed);
+					break;
+				case 'K':
+				case 'k':
+					initChip8();
+					if (loadRom(selectedRom) == 0)
+					{
+						CleanUp_SDL();
+						return 0;
+					}
 				default:
 					break;
 				}
@@ -154,7 +263,63 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-//Initialize everything
+void arrowMenu(int realPos, int arrowPos, int Y)
+{
+
+	char positionArrow[10];
+	sprintf(positionArrow, "%d->", pos);
+
+	if (realPos == arrowPos)
+	{
+		screenPrint(scene, positionArrow, Y, 90, red);
+	}
+	else
+	{
+		;
+	}
+}
+
+void getFiles()
+{
+
+	p = opendir("/app0/assets/misc/");
+	if (p != NULL)
+	{
+
+		int i = 0;
+
+		while ((pp = readdir(p)) != NULL)
+		{
+			if (strcmp(pp->d_name, ".") == 0 || strcmp(pp->d_name, "..") == 0)
+			{
+				;
+			}
+			else
+			{
+				strncpy(filenames[i], pp->d_name, 35);
+				i++;
+				fileCount++;
+			}
+		}
+	}
+
+	closedir(p);
+}
+char listedFiles[50];
+void listFiles()
+{
+	int Ylist = 200;
+
+	for (int i = 0; i < fileCount; i++)
+	{
+		sprintf(listedFiles, "%d | %s", i, filenames[i]);
+		screenPrint(scene, listedFiles, Ylist, 180, red);
+		arrowMenu(i, pos, Y);
+		Ylist += 40;
+	}
+}
+
+// Initialize everything
 void initChip8()
 {
 	delay_timer = 0;
@@ -176,43 +341,43 @@ int initSDL()
 {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0)
 	{
-		notifi(NULL, "%s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed to initialize SDL: " << SDL_GetError();
 		return 1;
 	}
 
-	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 320, 0);
+	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, 0);
 	if (window == NULL)
 	{
-		notifi(NULL, "%s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to create window: " << SDL_GetError();
 		return 1;
 	}
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 	if (renderer == NULL)
 	{
-		notifi(NULL, "SDL_Renderer %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to create renderer: " << SDL_GetError();
 		return 1;
 	}
 	if (SDL_RenderSetLogicalSize(renderer, 64, 32) < 0)
 	{
-		notifi(NULL, "Logical: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to set logical rendering size: " << SDL_GetError();
 		return 1;
 	}
 	if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255))
 	{
-		notifi(NULL, "DrawColor: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to set draw color rendering: " << SDL_GetError();
 		return 1;
 	}
 	if (SDL_RenderClear(renderer))
 	{
-		notifi(NULL, "Clear: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to clear renderer: " << SDL_GetError();
 		return 1;
 	}
 
 	screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
 	if (screen == NULL)
 	{
-		notifi(NULL, "Texture: %s", SDL_GetError());
+		DEBUGLOG << "[SDL ERROR] Failed trying to create texture: " << SDL_GetError();
 		return 1;
 	}
 	return 0;
@@ -225,7 +390,8 @@ uint32_t loadRom(char *file)
 
 	if (fp == NULL)
 	{
-		notifi(NULL, "%s", "Can't open the file rom");
+		notifi(NULL, "%s", "[ERROR] Cannot open file rom!");
+
 		return 1;
 	}
 
@@ -266,10 +432,10 @@ void draw()
 					SDL_RenderFillRect(renderer, &r);
 				}
 			}
+			SDL_RenderPresent(renderer);
 		}
-		SDL_RenderPresent(renderer);
+		drawflag = false;
 	}
-	drawflag = false;
 }
 
 // Emulate cycle
@@ -286,9 +452,6 @@ void execute()
 	nnn = (opcode & 0x0FFF);
 	kk = (opcode & 0x00FF);
 	n = (opcode & 0x000F);
-	printf("Opcode: %x \n", opcode);
-	printf("Program Counter: %x \n", PC);
-	printf("I: %x \n", I);
 
 	switch (opcode & 0xF000)
 	{
@@ -304,7 +467,7 @@ void execute()
 			drawflag = true;
 			break;
 		}
-		//00E0
+		// 00E0
 		case 0x00EE:
 		{
 			--sp;
@@ -312,18 +475,18 @@ void execute()
 			break;
 		}
 		default:
-			printf("Opcode error 0xxx -> %x\n", opcode);
+			DEBUGLOG << "[ERROR|OPCODE] 0xxx -> " << opcode;
 		}
 		break;
 	}
 
-	//1nnn
+	// 1nnn
 	case 0x1000:
 	{
 		PC = nnn;
 		break;
 	}
-	//2nnn
+	// 2nnn
 	case 0x2000:
 	{
 		stack[sp] = PC;
@@ -331,61 +494,61 @@ void execute()
 		PC = nnn;
 		break;
 	}
-	//3xkk
+	// 3xkk
 	case 0x3000:
 	{
 		if (v[X] == kk)
 			PC += 2;
 		break;
 	}
-	//4xkk
+	// 4xkk
 	case 0x4000:
 	{
 		if (v[X] != kk)
 			PC += 2;
 		break;
 	}
-	//5xy0
+	// 5xy0
 	case 0x5000:
 	{
 		if (v[X] == v[Y])
 			PC += 2;
 		break;
 	}
-	//6xkk
+	// 6xkk
 	case 0x6000:
 	{
 		v[X] = kk;
 		break;
 	}
-	//7xkk
+	// 7xkk
 	case 0x7000:
 	{
 		v[(X)] += kk;
 		break;
 	}
-	//8xyn
+	// 8xyn
 	case 0x8000:
 	{
 		switch (n)
 		{
-		//8xy0
+		// 8xy0
 		case 0x0000:
 			v[X] = v[Y];
 			break;
-		//8xy1
+		// 8xy1
 		case 0x0001:
 			v[X] |= v[Y];
 			break;
-		//8xy2
+		// 8xy2
 		case 0x0002:
 			v[X] &= v[Y];
 			break;
-		//8xy3
+		// 8xy3
 		case 0x0003:
 			v[X] ^= v[Y];
 			break;
-		//8xy4
+		// 8xy4
 		case 0x0004:
 		{
 			int i;
@@ -397,7 +560,7 @@ void execute()
 			v[X] = i & 0xFF;
 		}
 		break;
-		//8xy5
+		// 8xy5
 		case 0x0005:
 			if (v[X] > v[Y])
 				v[0xF] = 1;
@@ -405,12 +568,12 @@ void execute()
 				v[0xF] = 0;
 			v[X] -= v[Y];
 			break;
-		//8xy6
+		// 8xy6
 		case 0x0006:
 			v[0xF] = v[X] & 1;
 			v[X] >>= 1;
 			break;
-		//8xy7
+		// 8xy7
 		case 0x0007:
 			if (v[Y] > v[X])
 				v[0xF] = 1;
@@ -418,40 +581,40 @@ void execute()
 				v[0xF] = 0;
 			v[X] = v[Y] - v[X];
 			break;
-		//8xyE
+		// 8xyE
 		case 0x000E:
 			v[0xF] = v[X] >> 7;
 			v[X] <<= 1;
 			break;
 
 		default:
-			printf("Opcode error 8xxx -> %x\n", opcode);
+			DEBUGLOG << "[ERROR|OPCODE] 8xxx -> " << opcode;
 		}
 		break;
 	}
 
-	//9xy0
+	// 9xy0
 	case 0x9000:
 		if (v[X] != v[Y])
 			PC += 2;
 		break;
 
-	//Annn
+	// Annn
 	case 0xA000:
 		I = nnn;
 		break;
 
-	//Bnnn
+	// Bnnn
 	case 0xB000:
 		PC = (nnn) + v[0x0];
 		break;
 
-	//Cxkk
+	// Cxkk
 	case 0xC000:
 		v[X] = (rand() % 0x100) & (kk);
 		break;
 
-	//Dxyn
+	// Dxyn
 	case 0xD000:
 	{
 		uint16_t x = v[X];
@@ -478,17 +641,17 @@ void execute()
 		drawflag = true;
 		break;
 	}
-	//Exkk
+	// Exkk
 	case 0xE000:
 	{
 		switch (kk)
 		{
-		//Ex9E
+		// Ex9E
 		case 0x009E:
 			if (keyboard[v[X]] != 0)
 				PC += 2;
 			break;
-		//ExA1
+		// ExA1
 		case 0x00A1:
 			if (keyboard[v[X]] == 0)
 				PC += 2;
@@ -496,18 +659,18 @@ void execute()
 		}
 		break;
 	}
-	//Fxkk
+	// Fxkk
 	case 0xF000:
 	{
 
 		switch (kk)
 		{
-		//Fx07
+		// Fx07
 		case 0x0007:
 
 			v[X] = delay_timer;
 			break;
-		//Fx0A
+		// Fx0A
 		case 0x000A:
 			key_pressed = 0;
 			for (i = 0; i < 16; i++)
@@ -525,23 +688,23 @@ void execute()
 			}
 
 			break;
-		//Fx15
+		// Fx15
 		case 0x0015:
 			delay_timer = v[X];
 			break;
-		//Fx18
+		// Fx18
 		case 0x0018:
 			sound_timer = v[X];
 			break;
-		//Fx1E
+		// Fx1E
 		case 0x001E:
 			I = I + v[X];
 			break;
-		//Fx29
+		// Fx29
 		case 0x0029:
 			I = v[X] * 5;
 			break;
-		//Fx33
+		// Fx33
 		case 0x0033:
 		{
 			int vX;
@@ -554,7 +717,7 @@ void execute()
 		}
 		break;
 
-		//Fx55
+		// Fx55
 		case 0x0055:
 
 			for (uint8_t i = 0; i <= X; ++i)
@@ -562,7 +725,7 @@ void execute()
 				memory[I + i] = v[i];
 			}
 			break;
-		//Fx65
+		// Fx65
 		case 0x0065:
 
 			for (uint8_t i = 0; i <= X; ++i)
@@ -575,7 +738,7 @@ void execute()
 	break;
 
 	default:
-		printf("OPCODE ERROR -> %x \n", opcode);
+		DEBUGLOG << "[ERROR|OPCODE] Other opcode -> " << opcode;
 		break;
 	}
 }

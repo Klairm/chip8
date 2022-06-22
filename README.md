@@ -4,15 +4,15 @@ Chip8 interpreter in C++ ported to PS4
 A simple Chip8 interpreter written in C++ for educational purposes
 
 ## TODO:
-- Implement a file selection menu ( considering imgui )
+- Read ROMs from USB ( should be easy to implement )
+- Allow the user to return into the file menu
 - Optimize switch hell
-- Clean code ( it's fucking mess )
+- Clean code ( it's fucking mess ) ( for real I need to clean this)
 
 ## Usage
-Until I implement a menu the rom loaded it's harcoded (ye lol), so now it justs loads PONG2, you can change that in code and build again or wait until I make
-a proper menu 
+Select the ROM in the menu with X ,roms are stored in /app0/assets/misc/, then connect a keyboard to the PS4 and have fun
 
-(yes you need to connect a keyboard to your PS4)
+(yes you need to connect a keyboard to your PS4, lol)
 
 
 ## Keyboard
@@ -23,6 +23,9 @@ a proper menu
 |  7	8	9	E       |  A S D F      |
 |  A	0	B	F       |  Z X C V       |
 
+M = Increase speed
+L = Decrease speed
+K = Reload current ROM
 
 ## OpenOrbis Toolchain:
 
