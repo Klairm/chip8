@@ -5,6 +5,7 @@ A simple Chip8 interpreter written in C++ for educational purposes
 
 ## TODO:
 - Read ROMs from USB ( should be easy to implement )
+- Allow the user to return into the file menu
 - Optimize switch hell
 - Clean code ( it's fucking mess ) ( for real I need to clean this)
 
@@ -22,6 +23,9 @@ Select the ROM in the menu with X ,roms are stored in /app0/assets/misc/, then c
 |  7	8	9	E       |  A S D F      |
 |  A	0	B	F       |  Z X C V       |
 
+M = Increase speed
+L = Decrease speed
+K = Reload current ROM
 
 ## OpenOrbis Toolchain:
 

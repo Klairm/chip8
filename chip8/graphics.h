@@ -66,6 +66,7 @@ public:
 	
 	void DrawPixel(int x, int y, Color color);
 	void DrawRectangle(int x, int y, int w, int h, Color color);
+	int videoID();
 	
 #ifdef GRAPHICS_USES_FONT
 	bool InitFont(FT_Face *face, const char *fontPath, int fontSize);

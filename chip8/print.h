@@ -14,7 +14,6 @@
 extern FT_Face fontSize;
 extern const char *font;
 
-
-void screenPrint(Scene2D *scene, char *text, int Ypos, int Xpos= 150, Color textColor = {255, 255, 255});
+void screenPrint(Scene2D *scene, char *text, int Ypos, int Xpos = 150, Color textColor = {255, 255, 255});
 
 #endif

@@ -24,10 +24,10 @@ SDL_Window *window;
 SDL_Texture *screen;
 SDL_Event event;
 int frameID = 0;
-int Y = 220;
-
+int Y = 200;
 int pos = 0;
 int quitMain = 0;
+int fileCount = 0;
 DIR *p;
 struct dirent *pp;
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 {
 
 	// No buffering
-	// setvbuf(stdout, NULL, _IONBF, 0);
+	setvbuf(stdout, NULL, _IONBF, 0);
 
 	scene = new Scene2D(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
 	auto controller = new Controller();
@@ -64,48 +64,58 @@ int main(int argc, char **argv)
 		DEBUGLOG << "Failed to initialize large font '" << font << "'";
 	}
 	getFiles();
-	int32_t speed = 7;
 
-	uint8_t keys[32];
-	memset(keys, 0, 32);
-	for (;;)
+	while (!quitMain)
 	{
 		scene->FrameBufferFill({0, 0, 0});
 
 		if (controller->DpadDownPressed())
 		{
 
-			if (pos > (sizeof(filenames) / sizeof(*filenames)))
+			if (pos > fileCount)
 			{
-				Y = 220;
-				pos = 0;
+
+				Y = (200 + (fileCount * 40));
+				pos = fileCount;
 			}
-			pos++;
-			Y += 30;
+			else
+			{
+				pos++;
+				Y += 40;
+			}
 		}
 		else if (controller->DpadUpPressed())
 		{
 			if (pos < 0)
 			{
-				Y = 220;
+				Y = 200;
 				pos = 0;
 			}
-			pos--;
-			Y -= 30;
+			else
+			{
+				pos--;
+				Y -= 40;
+			}
 		}
 
 		else if (controller->XPressed())
 		{
 
+			initChip8();
 			sprintf(selectedRom, "/app0/assets/misc/%s", filenames[pos]);
 
 			if (loadRom(selectedRom) != 0)
 			{
-				DEBUGLOG << "Something failed trying to load the ROM";				
+				DEBUGLOG << "Something failed trying to load the ROM";
+
 				return 1;
 			}
+			scene->FrameBufferFill({0, 0, 0});
 
-			break;
+			sceVideoOutClose(scene->videoID());
+			free(scene);
+
+			quitMain = 1;
 		}
 		listFiles();
 
@@ -115,12 +125,15 @@ int main(int argc, char **argv)
 		frameID++;
 	}
 
-	if (initSDL() == 1)
+	if (initSDL() != 0)
 	{
+		notifi(NULL, "%s", SDL_GetError());
 		return 1;
 	}
-	initChip8();
+	int32_t speed = 7;
 
+	uint8_t keys[32];
+	memset(keys, 0, 32);
 	while (!quit)
 	{
 
@@ -210,7 +223,24 @@ int main(int argc, char **argv)
 				case 'V':
 					press ? keyboard[0xF] = 1 : keyboard[0xF] = 0;
 					break;
-
+				case 'M':
+				case 'm':
+					speed--;
+					notifi(NULL, "Speed: %d", speed);
+					break;
+				case 'L':
+				case 'l':
+					speed++;
+					notifi(NULL, "Speed: %d", speed);
+					break;
+				case 'K':
+				case 'k':
+					initChip8();
+					if (loadRom(selectedRom) == 0)
+					{
+						CleanUp_SDL();
+						return 0;
+					}
 				default:
 					break;
 				}
@@ -236,9 +266,12 @@ int main(int argc, char **argv)
 void arrowMenu(int realPos, int arrowPos, int Y)
 {
 
+	char positionArrow[10];
+	sprintf(positionArrow, "%d->", pos);
+
 	if (realPos == arrowPos)
 	{
-		screenPrint(scene, (char *)"->", Y, 90, red);
+		screenPrint(scene, positionArrow, Y, 90, red);
 	}
 	else
 	{
@@ -264,22 +297,25 @@ void getFiles()
 			else
 			{
 				strncpy(filenames[i], pp->d_name, 35);
+				i++;
+				fileCount++;
 			}
-			i++;
 		}
 	}
 
 	closedir(p);
 }
+char listedFiles[50];
 void listFiles()
 {
-	int Ylist = 220;
-	for (int i = 0; i < (sizeof(filenames) / sizeof(*filenames)); i++)
-	{
+	int Ylist = 200;
 
-		screenPrint(scene, filenames[i], Ylist, 180, red);
+	for (int i = 0; i < fileCount; i++)
+	{
+		sprintf(listedFiles, "%d | %s", i, filenames[i]);
+		screenPrint(scene, listedFiles, Ylist, 180, red);
 		arrowMenu(i, pos, Y);
-		Ylist += 30;
+		Ylist += 40;
 	}
 }
 
@@ -396,10 +432,10 @@ void draw()
 					SDL_RenderFillRect(renderer, &r);
 				}
 			}
+			SDL_RenderPresent(renderer);
 		}
-		SDL_RenderPresent(renderer);
+		drawflag = false;
 	}
-	drawflag = false;
 }
 
 // Emulate cycle
