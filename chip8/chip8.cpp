@@ -1,6 +1,6 @@
 #include "chip8.h"
 #include "notifi.h"
-//#include <orbis/Keyboard.h>
+#include <orbis/Keyboard.h>
 #include <orbis/libkernel.h>
 #include <dirent.h>
 
@@ -8,88 +8,106 @@
 #define FRAME_HEIGHT 1080
 #define FRAME_DEPTH 4
 
-/*void initChip8();
+void initChip8();
 int initSDL();
 void draw();
 void execute();
-void CleanUp_SDL();*/
+void CleanUp_SDL();
 void listFiles();
 void arrowMenu(int realPos, int arrowPos, int Y);
 void getFiles();
 
 uint32_t loadRom(char *file);
-
-/*SDL_Renderer *renderer;
+uint32_t quit = 0;
+SDL_Renderer *renderer;
 SDL_Window *window;
 SDL_Texture *screen;
-SDL_Event event;*/
+SDL_Event event;
 int frameID = 0;
 int Y = 220;
-int Ylist = Y;
-int pos = 1;
 
+int pos = 0;
+int quitMain = 0;
 DIR *p;
 struct dirent *pp;
 
 Scene2D *scene;
 Color red = {255, 0, 0};
 char filenames[50][50];
+char selectedRom[35];
 int main(int argc, char **argv)
 {
 
 	// No buffering
-	setvbuf(stdout, NULL, _IONBF, 0);
+	// setvbuf(stdout, NULL, _IONBF, 0);
 
 	scene = new Scene2D(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
 	auto controller = new Controller();
+	auto sceKeyboard = new Keyboard();
 	if (!scene->Init(0xC000000, 2))
 	{
-		notifi(NULL, "%s", "Can't init scene!!");
+		DEBUGLOG << "[ERROR] Can't init scene2D!!";
 	}
-	uint32_t quit = 0;
+
+	if (!sceKeyboard->Init(-1))
+	{
+		DEBUGLOG << "[ERROR] Can't init SceKeyboard!!";
+	}
 
 	if (!controller->Init(-1))
 	{
-		notifi(NULL, "%s", "Can't init controller!");
+		DEBUGLOG << "[ERROR] Can't init the controller!!";
 	}
+
 	if (!scene->InitFont(&fontSize, font, FONT_SIZE))
 	{
 		DEBUGLOG << "Failed to initialize large font '" << font << "'";
 	}
 	getFiles();
-	while (!quit)
+	int32_t speed = 7;
+
+	uint8_t keys[32];
+	memset(keys, 0, 32);
+	for (;;)
 	{
+		scene->FrameBufferFill({0, 0, 0});
 
-		listFiles();
-
-		if (controller->CirclePressed())
-		{
-			quit = 1;
-		}
-		else if (controller->DpadDownPressed())
+		if (controller->DpadDownPressed())
 		{
 
-			scene->FrameBufferFill({
-				0,
-				0,
-				0,
-			});
-			scene->FrameBufferSwap();
-
+			if (pos > (sizeof(filenames) / sizeof(*filenames)))
+			{
+				Y = 220;
+				pos = 0;
+			}
+			pos++;
 			Y += 30;
 		}
 		else if (controller->DpadUpPressed())
 		{
-
-			scene->FrameBufferFill({
-				0,
-				0,
-				0,
-			});
-			scene->FrameBufferSwap();
+			if (pos < 0)
+			{
+				Y = 220;
+				pos = 0;
+			}
 			pos--;
 			Y -= 30;
 		}
+
+		else if (controller->XPressed())
+		{
+
+			sprintf(selectedRom, "/app0/assets/misc/%s", filenames[pos]);
+
+			if (loadRom(selectedRom) != 0)
+			{
+				DEBUGLOG << "Something failed trying to load the ROM";				
+				return 1;
+			}
+
+			break;
+		}
+		listFiles();
 
 		scene->SubmitFlip(frameID);
 		scene->FrameWait(frameID);
@@ -97,36 +115,11 @@ int main(int argc, char **argv)
 		frameID++;
 	}
 
-	/*
-
-	auto sceKeyboard = new Keyboard();
-
-
-
-
-	if (!sceKeyboard->Init(-1))
-	{
-		DEBUGLOG << "[ERROR] Can't init libSceKeyboard!!";
-	}
-*/
-
-	/*if (initSDL() == 1)
+	if (initSDL() == 1)
 	{
 		return 1;
 	}
 	initChip8();
-
-	if (loadRom("/app0/assets/misc/PONG2") != 0)
-	{
-		DEBUGLOG << "Something failed trying to load the ROM";
-		CleanUp_SDL();
-		return 1;
-	}
-
-	int32_t speed = 7;
-
-	uint8_t keys[32];
-	memset(keys, 0, 32);
 
 	while (!quit)
 	{
@@ -236,7 +229,7 @@ int main(int argc, char **argv)
 	}
 
 	CleanUp_SDL();
-*/
+
 	return 0;
 }
 
@@ -249,12 +242,13 @@ void arrowMenu(int realPos, int arrowPos, int Y)
 	}
 	else
 	{
-		screenPrint(scene, (char *)" ", Y, 90, red);
+		;
 	}
 }
 
 void getFiles()
 {
+
 	p = opendir("/app0/assets/misc/");
 	if (p != NULL)
 	{
@@ -263,7 +257,14 @@ void getFiles()
 
 		while ((pp = readdir(p)) != NULL)
 		{
-			strcpy(filenames[i], pp->d_name);
+			if (strcmp(pp->d_name, ".") == 0 || strcmp(pp->d_name, "..") == 0)
+			{
+				;
+			}
+			else
+			{
+				strncpy(filenames[i], pp->d_name, 35);
+			}
 			i++;
 		}
 	}
@@ -272,16 +273,16 @@ void getFiles()
 }
 void listFiles()
 {
+	int Ylist = 220;
 	for (int i = 0; i < (sizeof(filenames) / sizeof(*filenames)); i++)
 	{
 
+		screenPrint(scene, filenames[i], Ylist, 180, red);
 		arrowMenu(i, pos, Y);
-		screenPrint(scene, filenames[i], Ylist);
-
 		Ylist += 30;
 	}
 }
-/*
+
 // Initialize everything
 void initChip8()
 {
@@ -353,7 +354,8 @@ uint32_t loadRom(char *file)
 
 	if (fp == NULL)
 	{
-		DEBUGLOG << "[ERROR] Cannot open file rom!";
+		notifi(NULL, "%s", "[ERROR] Cannot open file rom!");
+
 		return 1;
 	}
 
@@ -414,9 +416,6 @@ void execute()
 	nnn = (opcode & 0x0FFF);
 	kk = (opcode & 0x00FF);
 	n = (opcode & 0x000F);
-	printf("Opcode: %x \n", opcode);
-	printf("Program Counter: %x \n", PC);
-	printf("I: %x \n", I);
 
 	switch (opcode & 0xF000)
 	{
@@ -440,7 +439,7 @@ void execute()
 			break;
 		}
 		default:
-			printf("Opcode error 0xxx -> %x\n", opcode);
+			DEBUGLOG << "[ERROR|OPCODE] 0xxx -> " << opcode;
 		}
 		break;
 	}
@@ -553,7 +552,7 @@ void execute()
 			break;
 
 		default:
-			printf("Opcode error 8xxx -> %x\n", opcode);
+			DEBUGLOG << "[ERROR|OPCODE] 8xxx -> " << opcode;
 		}
 		break;
 	}
@@ -703,7 +702,7 @@ void execute()
 	break;
 
 	default:
-		printf("OPCODE ERROR -> %x \n", opcode);
+		DEBUGLOG << "[ERROR|OPCODE] Other opcode -> " << opcode;
 		break;
 	}
 }
@@ -715,4 +714,3 @@ void CleanUp_SDL()
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 }
-*/
