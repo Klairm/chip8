@@ -42,18 +42,18 @@ int main(int argc, char **argv)
 	setvbuf(stdout, NULL, _IONBF, 0);
 
 	scene = new Scene2D(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
-	auto controller = new Controller();
-	auto sceKeyboard = new Keyboard();
 	if (!scene->Init(0xC000000, 2))
 	{
 		DEBUGLOG << "[ERROR] Can't init scene2D!!";
 	}
-
+	auto sceKeyboard = new Keyboard();
 	if (!sceKeyboard->Init(-1))
 	{
+
 		DEBUGLOG << "[ERROR] Can't init SceKeyboard!!";
 	}
 
+	auto controller = new Controller();
 	if (!controller->Init(-1))
 	{
 		DEBUGLOG << "[ERROR] Can't init the controller!!";
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 
 			sceVideoOutClose(scene->videoID());
 			free(scene);
-
+			free(controller);
 			quitMain = 1;
 		}
 		listFiles();
@@ -130,10 +130,10 @@ int main(int argc, char **argv)
 		notifi(NULL, "%s", SDL_GetError());
 		return 1;
 	}
-	int32_t speed = 7;
 
 	uint8_t keys[32];
 	memset(keys, 0, 32);
+
 	while (!quit)
 	{
 
@@ -223,16 +223,7 @@ int main(int argc, char **argv)
 				case 'V':
 					press ? keyboard[0xF] = 1 : keyboard[0xF] = 0;
 					break;
-				case 'M':
-				case 'm':
-					speed--;
-					notifi(NULL, "Speed: %d", speed);
-					break;
-				case 'L':
-				case 'l':
-					speed++;
-					notifi(NULL, "Speed: %d", speed);
-					break;
+
 				case 'K':
 				case 'k':
 					initChip8();
@@ -241,6 +232,8 @@ int main(int argc, char **argv)
 						CleanUp_SDL();
 						return 0;
 					}
+					break;
+
 				default:
 					break;
 				}
@@ -253,7 +246,6 @@ int main(int argc, char **argv)
 		{
 			--delay_timer;
 		}
-
 		execute();
 		draw();
 	}
@@ -407,8 +399,7 @@ uint32_t loadRom(char *file)
 // Draw function
 void draw()
 {
-	void *pixels;
-	int pitch;
+
 	SDL_Rect r;
 	int x, y;
 	r.x = 0;
@@ -432,10 +423,10 @@ void draw()
 					SDL_RenderFillRect(renderer, &r);
 				}
 			}
-			SDL_RenderPresent(renderer);
 		}
-		drawflag = false;
+		SDL_RenderPresent(renderer);
 	}
+	drawflag = false;
 }
 
 // Emulate cycle
