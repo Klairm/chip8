@@ -4,11 +4,9 @@
 
 class Keyboard
 {
-	
 
-	
 public:
-int handle;
+	int handle;
 	int userID;
 	OrbisKeyboardData data;
 	void Poll();
@@ -38,11 +36,12 @@ int handle;
 	class KeycodeArray
 	{
 		OrbisKeyboardData data;
-		KeycodeArray(OrbisKeyboardData p) : data(p){}
+		KeycodeArray(OrbisKeyboardData p) : data(p) {}
 		friend class Keyboard;
+
 	public:
-		uint16_t* begin();
-		uint16_t* end();
+		uint16_t *begin();
+		uint16_t *end();
 	};
 
 	Keyboard();

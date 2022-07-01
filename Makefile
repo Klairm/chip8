@@ -1,11 +1,11 @@
 # Package metadata.
-TITLE       := chip8
-VERSION     := 1.03
+TITLE       := Chip 8
+VERSION     := 1.04
 TITLE_ID    := CHIP80020
 CONTENT_ID  := IV0000-CHIP80020_00-CHIPEMULAT000000
 
 # Libraries linked into the ELF.
-LIBS        := -lc -lkernel -lc++ -lSceUserService -lSceVideoOut -lSceAudioOut -lSceKeyboard -lScePad -lSceSysmodule -lSceFreeType -lSDL2 -lSDL2_image
+LIBS        := -lc -lkernel -lc++ -lSceUserService -lSceVideoOut -lSceAudioOut -lSceKeyboard -lScePad -lSceSysmodule -lSceFreeType -lSDL2 
 					
 
 # Additional compile flags.

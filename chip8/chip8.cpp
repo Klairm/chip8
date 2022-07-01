@@ -1,40 +1,8 @@
 #include "chip8.h"
-#include "notifi.h"
-#include <orbis/Keyboard.h>
-#include <orbis/libkernel.h>
-#include <dirent.h>
 
-#define FRAME_WIDTH 1920
-#define FRAME_HEIGHT 1080
-#define FRAME_DEPTH 4
-
-void initChip8();
-int initSDL();
-void draw();
-void execute();
-void CleanUp_SDL();
-void listFiles();
-void arrowMenu(int realPos, int arrowPos, int Y);
-void getFiles();
-
-uint32_t loadRom(char *file);
 uint32_t quit = 0;
-SDL_Renderer *renderer;
-SDL_Window *window;
-SDL_Texture *screen;
-SDL_Event event;
-int frameID = 0;
-int Y = 200;
-int pos = 0;
 int quitMain = 0;
-int fileCount = 0;
-DIR *p;
-struct dirent *pp;
 
-Scene2D *scene;
-Color red = {255, 0, 0};
-char filenames[50][50];
-char selectedRom[35];
 int main(int argc, char **argv)
 {
 
@@ -67,7 +35,7 @@ int main(int argc, char **argv)
 
 	while (!quitMain)
 	{
-		scene->FrameBufferFill({0, 0, 0});
+		scene->FrameBufferFill(black);
 
 		if (controller->DpadDownPressed())
 		{
@@ -75,26 +43,26 @@ int main(int argc, char **argv)
 			if (pos > fileCount)
 			{
 
-				Y = (200 + (fileCount * 40));
+				arrowY = (200 + (fileCount * 40));
 				pos = fileCount;
 			}
 			else
 			{
 				pos++;
-				Y += 40;
+				arrowY += 40;
 			}
 		}
 		else if (controller->DpadUpPressed())
 		{
 			if (pos < 0)
 			{
-				Y = 200;
+				arrowY = 200;
 				pos = 0;
 			}
 			else
 			{
 				pos--;
-				Y -= 40;
+				arrowY -= 40;
 			}
 		}
 
@@ -102,7 +70,7 @@ int main(int argc, char **argv)
 		{
 
 			initChip8();
-			sprintf(selectedRom, "/app0/assets/misc/%s", filenames[pos]);
+			snprintf(selectedRom, 30, "/app0/assets/misc/%s", filenames[pos]);
 
 			if (loadRom(selectedRom) != 0)
 			{
@@ -110,7 +78,7 @@ int main(int argc, char **argv)
 
 				return 1;
 			}
-			scene->FrameBufferFill({0, 0, 0});
+			scene->FrameBufferFill(black);
 
 			sceVideoOutClose(scene->videoID());
 			free(scene);
@@ -131,37 +99,43 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	uint8_t keys[32];
 	memset(keys, 0, 32);
 
 	while (!quit)
 	{
 
+		/*
+		|  Get data from keyboard checking key state, then save the keycodes in one array to check if the keycodes data has changed
+		*/
 		sceKeyboard->Poll();
-		// thanks znullptr for this help
+
 		for (int ix = 0; ix < 32; ix++)
 		{
 			uint8_t found = 0;
 			for (int ik = 0; ik < (int)sizeof(sceKeyboard->data); ik++)
 			{
-				uint8_t kc = sceKeyboard->data.keycodes[ik];
-				if (kc && ix == kc)
+				uint8_t keycode = sceKeyboard->data.keycodes[ik];
+				if (keycode && ix == keycode)
+				{
 					found = true;
+				}
 			}
 			bool press = found && !(keys[ix]);
 			bool release = !found && (keys[ix]);
 			keys[ix] = found;
 
+			// thanks znullptr for this help
 			if (press || release)
 			{
 				char key = (char)sceKeyboard->Key2Char(ix);
 				// TODO: Optimize this shit
 				// this is so disgusting and it deserves a special place in hell
 
-				switch (key)
+				switch ((char)toupper(key))
 				{
-				case 'x':
+
 				case 'X':
+
 					press ? keyboard[0] = 1 : keyboard[0] = 0;
 					break;
 				case '1':
@@ -170,62 +144,61 @@ int main(int argc, char **argv)
 				case '2':
 					press ? keyboard[2] = 1 : keyboard[2] = 0;
 					break;
-				case 'g':
+
 				case 'G':
 					press ? keyboard[3] = 1 : keyboard[3] = 0;
 					break;
 				case 'T':
-				case 't':
 
 					press ? keyboard[0xC] = 1 : keyboard[0xC] = 0;
 					break;
-				case 'q':
+
 				case 'Q':
 					press ? keyboard[4] = 1 : keyboard[4] = 0;
 					break;
-				case 'w':
+
 				case 'W':
 					press ? keyboard[5] = 1 : keyboard[5] = 0;
 					break;
-				case 'e':
+
 				case 'E':
 					press ? keyboard[6] = 1 : keyboard[6] = 0;
 					break;
-				case 'a':
+
 				case 'A':
 					press ? keyboard[7] = 1 : keyboard[7] = 0;
 					break;
-				case 's':
+
 				case 'S':
 					press ? keyboard[8] = 1 : keyboard[8] = 0;
 					break;
-				case 'd':
+
 				case 'D':
 					press ? keyboard[9] = 1 : keyboard[9] = 0;
 					break;
-				case 'z':
+
 				case 'Z':
 					press ? keyboard[0xA] = 1 : keyboard[0xA] = 0;
 					break;
-				case 'c':
+
 				case 'C':
 					press ? keyboard[0xB] = 1 : keyboard[0xB] = 0;
 					break;
-				case 'r':
+
 				case 'R':
 					press ? keyboard[0xD] = 1 : keyboard[0xD] = 0;
 					break;
-				case 'f':
+
 				case 'F':
 					press ? keyboard[0xE] = 1 : keyboard[0xE] = 0;
 					break;
-				case 'v':
+
 				case 'V':
 					press ? keyboard[0xF] = 1 : keyboard[0xF] = 0;
 					break;
 
 				case 'K':
-				case 'k':
+
 					initChip8();
 					if (loadRom(selectedRom) == 0)
 					{
@@ -259,7 +232,7 @@ void arrowMenu(int realPos, int arrowPos, int Y)
 {
 
 	char positionArrow[10];
-	sprintf(positionArrow, "%d->", pos);
+	snprintf(positionArrow, 8, "%d->", pos);
 
 	if (realPos == arrowPos)
 	{
@@ -288,7 +261,7 @@ void getFiles()
 			}
 			else
 			{
-				strncpy(filenames[i], pp->d_name, 35);
+				strncpy(filenames[i], pp->d_name, 50);
 				i++;
 				fileCount++;
 			}
@@ -297,17 +270,17 @@ void getFiles()
 
 	closedir(p);
 }
-char listedFiles[50];
+
 void listFiles()
 {
-	int Ylist = 200;
+	int file_listY = 200;
 
 	for (int i = 0; i < fileCount; i++)
 	{
-		sprintf(listedFiles, "%d | %s", i, filenames[i]);
-		screenPrint(scene, listedFiles, Ylist, 180, red);
-		arrowMenu(i, pos, Y);
-		Ylist += 40;
+		snprintf(listedFiles, 50, "%d | %s", i, filenames[i]);
+		screenPrint(scene, listedFiles, file_listY, 180, red);
+		arrowMenu(i, pos, arrowY);
+		file_listY += 40;
 	}
 }
 
