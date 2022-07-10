@@ -181,32 +181,32 @@ uint32_t loadRom(char* file)
 // Draw function
 void draw()
 {
-	void *pixels;
-	int pitch;
-	SDL_Rect r;
-	int x, y;
-	r.x = 0;
-	r.y = 0;
-	r.w = 1;
-	r.h = 1;
+	uint32_t pixels[64 * 32];
+	unsigned int x, y;
 		
 	if (drawflag)
 	{
-		SDL_SetRenderDrawColor( renderer, 0, 0, 0, 255 );
-		SDL_RenderClear(renderer);
-		SDL_SetRenderDrawColor( renderer, 255, 0, 0, 0 );
+		memset(pixels, 0, (64 * 32) * 4);
 		for(x=0;x<64;x++)
 		{
 			for(y=0;y<32;y++)
 			{
 				if (gfx[(x) + ((y) * 64)] == 1)
 				{
-					r.x = x;
-					r.y = y;
-					SDL_RenderFillRect( renderer, &r );
+					pixels[(x) + ((y) * 64)] = UINT32_MAX;
 				}
 			}
 		}
+		
+		SDL_UpdateTexture(screen, NULL, pixels, 64 * sizeof(uint32_t));
+	
+		SDL_Rect position;
+		position.x = 0;
+		position.y = 0;
+		// If you change SDL_RenderSetLogicalSize, change this accordingly.
+		position.w = 64;
+		position.h = 32;
+		SDL_RenderCopy(renderer, screen, NULL, &position);
 		SDL_RenderPresent(renderer);
 	}
 	drawflag = false;
